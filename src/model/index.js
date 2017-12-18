@@ -4,9 +4,7 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-import StringTools from "zoapp-core/helpers/stringTools";
-
-import dbCreate from "zoapp-core/database";
+import { StringTools, dbCreate } from "zoapp-core";
 import descriptor from "./descriptor";
 
 export class ZOAuthModel {
@@ -79,12 +77,12 @@ export class ZOAuthModel {
       let cid = this.generateClientId();
       // In case the client_id already exist
       localApp = await this.getApplication(cid);
-      /* eslint-disable no-await-in-loop*/
+      /* eslint-disable no-await-in-loop */
       while (localApp) {
         cid = this.generateClientId();
         localApp = await this.getApplication(cid);
       }
-      /* eslint-enable no-await-in-loop*/
+      /* eslint-enable no-await-in-loop */
       localApp = {};
       app.id = cid;
       app.creation_date = Date.now();
@@ -263,7 +261,7 @@ export class ZOAuthModel {
       auth = { ...authentication };
       if (localAuth) {
         // TODO mix with previous stored authentication
-        id = localAuth.id;
+        ({ id } = localAuth);
         if (!auth.scope) {
           auth.scope = localAuth.scope;
         }

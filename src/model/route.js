@@ -7,7 +7,6 @@
 import StringTools from "zoapp-core/helpers/stringTools";
 
 export default class Route {
-
   constructor(name, auth) {
     this.name = name;
     this.auth = auth;

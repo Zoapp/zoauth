@@ -58,7 +58,7 @@ class ZOAuthRoute {
   }
 
   add(method, path, scopes, callback, authCallback = null) {
-    const root = this.root;
+    const { root } = this;
     const authCb = authCallback || this.authCallback;
     const p = this.rootPath ? this.rootPath + path : path;
     root.authServer.addRoute(p, scopes, method);
@@ -86,7 +86,6 @@ class ZOAuthRoute {
 }
 
 export default class ZOAuthRouter {
-
   constructor(authServer) {
     this.authServer = authServer;
     this.router = Router();
@@ -101,12 +100,12 @@ export default class ZOAuthRouter {
 
   authMiddleware(req, res, next, callback = null) {
     const token = getAccessTokenFromRequest(req);
-    const method = req.method;
+    const { method } = req;
     const routeName = req.route.path;
     this.authServer.grantAccess(routeName, method, token).then((access) => {
       let n = false;
       let context = null;
-      let result = access.result;
+      let { result } = access;
       if (!result.error) {
         context = new RouteContext(req, res);
         n = true;

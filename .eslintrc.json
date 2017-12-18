@@ -19,11 +19,6 @@
     "plugins": [
         "import"
     ],
-    "jsx-no-bind": [true, {
-        "ignoreRefs": true,
-        "allowArrowFunctions":true,
-        "allowBind": true
-    }],
     "rules": {
         "indent": [2, 2],
         "quotes": [

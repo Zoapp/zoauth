@@ -4,8 +4,7 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-import StringTools from "zoapp-core/helpers/stringTools";
-import Password from "zoapp-core/helpers/password";
+import { StringTools, Password } from "zoapp-core";
 import createModel from "./model";
 import Route from "./model/route";
 
@@ -15,7 +14,7 @@ export class ZOAuthServer {
     WRONG_EMAIL: "Wrong email sent",
     WRONG_NAME: "Wrong name sent",
     CANT_SAVE_APP: "Can't save application",
-  };*/
+  }; */
 
   constructor(config = {}, database = null) {
     this.config = { ...config };
@@ -76,8 +75,14 @@ export class ZOAuthServer {
           // console.log("access=", access);
           // console.log("route=", route);
           if (route.isScopeValid(access.scope)) {
-            const { access_token, client_id, expires_in, scope, user_id } = access;
-            response.result = { access_token, client_id, expires_in, scope, user_id };
+            /* eslint-disable camelcase */
+            const {
+              access_token, client_id, expires_in, scope, user_id,
+            } = access;
+            response.result = {
+              access_token, client_id, expires_in, scope, user_id,
+            };
+            /* eslint-enable camelcase */
           } else {
             response.result = { error: "Not allowed" };
           }
@@ -189,7 +194,9 @@ export class ZOAuthServer {
    * Register a ResourceOwner User
    */
   async registerUser(params) {
-    const { client_id: clientId, username, email, password, ...extras } = params;
+    const {
+      client_id: clientId, username, email, password, ...extras
+    } = params;
     let app = null;
     if (clientId) {
       app = await this.model.getApplication(clientId);
@@ -319,7 +326,7 @@ export class ZOAuthServer {
       username,
       password,
       grant_type: grantType,
-      /* redirect_uri: redirectUri,*/
+      /* redirect_uri: redirectUri, */
       client_id: clientId,
       /* ...extras */
     } = params;
@@ -349,7 +356,7 @@ export class ZOAuthServer {
 
     if (user && authentication) {
       // generate accessToken
-      const scope = authentication.scope;
+      const { scope } = authentication;
       const accessToken = await this.model.getAccessToken(
         clientId,
         user.id,
@@ -401,7 +408,6 @@ export class ZOAuthServer {
     const app = await this.model.getApplication(`name${name}`);
     return app;
   }
-
 }
 
 export default (config, database) => new ZOAuthServer(config, database);

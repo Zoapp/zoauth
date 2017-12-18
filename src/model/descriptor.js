@@ -45,6 +45,9 @@ const descriptor = {
         email: {
           type: "string",
         },
+        domains: {
+          type: "string",
+        },
         policies: {
           type: "object",
         },

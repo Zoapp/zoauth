@@ -1,16 +1,18 @@
 {
   "name": "zoauth-server",
-  "version": "0.2.0",
-  "description": "Authentification Server using ES7 with minimal dependencies",
+  "version": "0.2.1",
+  "description": "Authentification Server using ES7",
   "main": "index.js",
   "scripts": {
-    "start:dev": "nodemon -w src --exec \"node src\" --harmony",
+    "clean-dist": "rm -r -f dist && mkdir dist",    
+    "start:dev": "nodemon -w src --exec \"babel-node src\"",
     "build:dev": "babel src -s -D -d dist",
     "start:prod": "node dist",
-    "lint:dev": "eslint src",
+    "build:prod": "yarn clean-dist && babel src -s -D -d dist && cp -f ./package.json ./dist/package.json && cp -f ./LICENSE ./dist/LICENSE && cp -f ./README.md ./dist/README.md",
+    "lint:dev": "eslint src --rule 'no-console: off'",
     "lint:prod": "eslint src",
-    "build:prod": "babel -d dist/ src/ && cp -f ./package.json ./dist/package.json",
-    "test": "./node_modules/.bin/mocha --compilers js:babel-core/register"
+    "test": "./node_modules/.bin/mocha --compilers js:babel-core/register",
+    "willPublish": "yarn run lint:prod && yarn run test && yarn run build:prod"
   },
   "keywords": [
     "Node",
@@ -35,17 +37,14 @@
   },
   "dependencies": {
     "body-parser": "^1.17.2",
-    "compression": "^1.6.2",
     "express": "^4.15.3",
-    "morgan": "^1.8.1",
-    "resource-router-middleware": "^0.6.0",
-    "zoapp-core": "file:../zoapp-core/dist"
+    "zoapp-core": "0.2.4"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.0",
     "babel-eslint": "^8.0.3",
-    "babel-plugin-transform-object-rest-spread": "^6.28.0",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "babel-preset-env": "^1.6.1",
     "babel-preset-es2016": "^6.24.1",
     "chai": "^4.1.2",

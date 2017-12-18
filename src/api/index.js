@@ -68,7 +68,7 @@ export default (authServer = null, app = null, config = {}) => {
   /* eslint-disable no-unused-vars */
   /* router.use((err, req, res, next) => {
     res.status(500).json({ error: "internal server error" });
-  });*/
+  }); */
   router.use((req, res, next) => {
     sendResponse({ error: "unknown request" }, res);
   });

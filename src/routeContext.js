@@ -23,22 +23,20 @@ export default class RouteContext {
   }
 
   getScope() {
-    const access = this.res.locals.access;
+    const { access } = this.res.locals;
     let scope = null;
     if (access) {
-      scope = access.scope;
+      ({ scope } = access);
     }
     return scope;
   }
 
   getClientId() {
-    const access = this.res.locals.access;
+    const { access } = this.res.locals;
     let clientId = null;
     if (access) {
       clientId = access.client_id;
     }
     return clientId;
   }
-
 }
-
