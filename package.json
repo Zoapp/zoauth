@@ -1,6 +1,8 @@
 {
   "name": "zoauth-server",
   "version": "0.2.1",
+  "author": "Mik BRY",
+  "license": "MIT",  
   "description": "Authentification Server using ES7",
   "main": "index.js",
   "scripts": {
@@ -11,7 +13,7 @@
     "build:prod": "yarn clean-dist && babel src -s -D -d dist && cp -f ./package.json ./dist/package.json && cp -f ./LICENSE ./dist/LICENSE && cp -f ./README.md ./dist/README.md",
     "lint:dev": "eslint src --rule 'no-console: off'",
     "lint:prod": "eslint src",
-    "test": "./node_modules/.bin/mocha --compilers js:babel-core/register",
+    "test": "./node_modules/.bin/mocha --compilers js:babel-core/register --exit",
     "willPublish": "yarn run lint:prod && yarn run test && yarn run build:prod"
   },
   "keywords": [
@@ -19,22 +21,9 @@
     "ES7",
     "OAuth2"
   ],
-  "author": "Mik BRY",
-  "license": "MIT",
-  "eslintConfig": {
-    "extends": "eslint:recommended",
-    "parserOptions": {
-      "ecmaVersion": 7,
-      "sourceType": "module"
-    },
-    "env": {
-      "node": true
-    },
-    "rules": {
-      "no-console": 0,
-      "no-unused-vars": 1
-    }
-  },
+  "engines": {
+    "node": ">=8.5.0"
+  },  
   "dependencies": {
     "body-parser": "^1.17.2",
     "express": "^4.15.3",
