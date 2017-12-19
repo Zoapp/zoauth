@@ -29,7 +29,7 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
   describe("registerApplication", () => {
     it("should register Application", async () => {
       const params = {
-        name: "Opla",
+        name: "Zoapp",
         grant_type: "password",
         redirect_uri: "localhost",
         email: "toto@test.com",
@@ -38,7 +38,7 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
       await authServer.reset();
       await authServer.start();
       const response = await authServer.registerApplication(params);
-      const result = response.result;
+      const { result } = response;
       expect(result).to.have.all.keys(["client_id", "client_secret"]);
       expect(result.client_id).to.have.lengthOf(64);
     });
@@ -48,21 +48,21 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
       await authServer.reset();
       await authServer.start();
       let response = await authServer.registerApplication(params);
-      let result = response.result;
+      let { result } = response;
       assert.equal(result.error, "Wrong email sent", "Empty parameters sent");
       params = { email: "toto@test.com" };
       response = await authServer.registerApplication(params);
-      result = response.result;
+      ({ result } = response);
       assert.equal(result.error, "Wrong name sent", "No name send");
       params = {
-        name: "Opla",
+        name: "Zoapp",
         grant_type: "password",
         redirect_uri: "localhost",
         email: "toto@test.com",
       };
       await authServer.registerApplication(params);
       response = await authServer.registerApplication(params);
-      result = response.result;
+      ({ result } = response);
       assert.equal(
         result.error,
         "Can't register this application name",
@@ -74,7 +74,7 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
   describe("registerUser", () => {
     it("should register User", async () => {
       let params = {
-        name: "Opla",
+        name: "Zoapp",
         grant_type: "password",
         redirect_uri: "localhost",
         email: "toto@test.com",
@@ -83,19 +83,21 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
       await authServer.reset();
       await authServer.start();
       let response = await authServer.registerApplication(params);
-      let result = response.result;
+      let { result } = response;
       expect(result).to.have.all.keys(["client_id", "client_secret"]);
       const clientId = result.client_id;
       expect(clientId).to.have.lengthOf(64);
-      params = { client_id: clientId, username: "toto", password: "12345", email: "toto@test.com" };
+      params = {
+        client_id: clientId, username: "toto", password: "12345", email: "toto@test.com",
+      };
       response = await authServer.registerUser(params);
-      result = response.result;
+      ({ result } = response);
       expect(result).to.have.all.keys(["id", "email", "username"]);
       expect(result.id).to.have.lengthOf(32);
     });
     it("should not register User", async () => {
       let params = {
-        name: "Opla",
+        name: "Zoapp",
         grant_type: "password",
         redirect_uri: "localhost",
         email: "toto@test.com",
@@ -104,13 +106,13 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
       await authServer.reset();
       await authServer.start();
       let response = await authServer.registerApplication(params);
-      let result = response.result;
+      let { result } = response;
       expect(result).to.have.all.keys(["client_id", "client_secret"]);
       const clientId = result.client_id;
       expect(clientId).to.have.lengthOf(64);
       params = { client_id: clientId };
       response = await authServer.registerUser(params);
-      result = response.result;
+      ({ result } = response);
       assert.equal(
         result.error,
         "Wrong parameters sent",
@@ -118,23 +120,135 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
       );
       params = { client_id: clientId, email: "tutu@test.com" };
       response = await authServer.registerUser(params);
-      result = response.result;
+      ({ result } = response);
       assert.equal(result.error, "Wrong parameters sent", "No name send");
       params = { client_id: clientId, email: "tutu@test.com", username: "tutu" };
       response = await authServer.registerUser(params);
-      result = response.result;
+      ({ result } = response);
       assert.equal(result.error, "Wrong parameters sent", "No password send");
-      params = { client_id: clientId, username: "toto", password: "12345", email: "toto@test.com" };
+      params = {
+        client_id: clientId, username: "toto", password: "12345", email: "toto@test.com",
+      };
       await authServer.registerUser(params);
       response = await authServer.registerUser(params);
-      result = response.result;
+      ({ result } = response);
       assert.equal(result.error, "User exist: toto", "User already exist");
+    });
+  });
+  describe("registerAnonymousUser", () => {
+    it("should register anonymous User", async () => {
+      let params = {
+        name: "Zoapp",
+        grant_type: "password",
+        redirect_uri: "localhost",
+        email: "toto@test.com",
+        policies: { authorizeAnonymous: true, anonymous_secret: "koko" },
+      };
+      const authServer = zoauthServer(config);
+      await authServer.reset();
+      await authServer.start();
+      let response = await authServer.registerApplication(params);
+      let { result } = response;
+      expect(result).to.have.all.keys(["client_id", "client_secret"]);
+      const clientId = result.client_id;
+      expect(clientId).to.have.lengthOf(64);
+      params = {
+        client_id: clientId, anonymous_secret: "koko",
+      };
+      response = await authServer.registerUser(params);
+      ({ result } = response);
+      expect(result).to.have.all.keys(["id", "username"]);
+      expect(result.id).to.have.lengthOf(32);
+    });
+    it("should not register User", async () => {
+      let params = {
+        name: "Zoapp",
+        grant_type: "password",
+        redirect_uri: "localhost",
+        email: "toto@test.com",
+        policies: { authorizeAnonymous: true, anonymous_secret: "koko" },
+      };
+      const authServer = zoauthServer(config);
+      await authServer.reset();
+      await authServer.start();
+      let response = await authServer.registerApplication(params);
+      let { result } = response;
+      expect(result).to.have.all.keys(["client_id", "client_secret"]);
+      const clientId = result.client_id;
+      expect(clientId).to.have.lengthOf(64);
+      params = { client_id: clientId };
+      response = await authServer.registerUser(params);
+      ({ result } = response);
+      assert.equal(
+        result.error,
+        "Wrong parameters sent",
+        "Empty parameters sent",
+      );
+      params = { client_id: clientId, anonymous_secret: "kiki" };
+      response = await authServer.registerUser(params);
+      ({ result } = response);
+      assert.equal(result.error, "Wrong parameters sent", "No name send");
+    });
+  });
+  describe("createAnonymousUserWithAccessToken", () => {
+    it("should register anonymous User", async () => {
+      let params = {
+        name: "Zoapp",
+        grant_type: "password",
+        redirect_uri: "localhost",
+        email: "toto@test.com",
+        policies: { authorizeAnonymous: true, anonymous_secret: "koko" },
+      };
+      const authServer = zoauthServer(config);
+      await authServer.reset();
+      await authServer.start();
+      let response = await authServer.registerApplication(params);
+      let { result } = response;
+      expect(result).to.have.all.keys(["client_id", "client_secret"]);
+      const clientId = result.client_id;
+      expect(clientId).to.have.lengthOf(64);
+      params = {
+        client_id: clientId, anonymous_secret: "koko",
+      };
+      response = await authServer.anonymousAccess(params);
+      ({ result } = response);
+      expect(result).to.have.all.keys(["user_id", "username", "access_token", "expires_in", "scope"]);
+      expect(result.user_id).to.have.lengthOf(32);
+    });
+    it("should not register User", async () => {
+      let params = {
+        name: "Zoapp",
+        grant_type: "password",
+        redirect_uri: "localhost",
+        email: "toto@test.com",
+        policies: { authorizeAnonymous: true, anonymous_secret: "koko" },
+      };
+      const authServer = zoauthServer(config);
+      await authServer.reset();
+      await authServer.start();
+      let response = await authServer.registerApplication(params);
+      let { result } = response;
+      expect(result).to.have.all.keys(["client_id", "client_secret"]);
+      const clientId = result.client_id;
+      expect(clientId).to.have.lengthOf(64);
+      params = { client_id: clientId };
+      response = await authServer.anonymousAccess(params);
+      ({ result } = response);
+      assert.equal(
+        result.error,
+        "Wrong parameters sent",
+        "Empty parameters sent",
+      );
+      params = { client_id: clientId, anonymous_secret: "kiki" };
+      response = await authServer.anonymousAccess(params);
+      ({ result } = response);
+      assert.equal(result.error, "Wrong parameters sent", "No name send");
     });
   });
   describe("authorize", () => {
     it("should authorize user", async () => {
       let params = {
-        name: "Opla",
+        name: "Zoapp",
         grant_type: "password",
         redirect_uri: "localhost",
         email: "toto@test.com",
@@ -143,13 +257,15 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
       await authServer.reset();
       await authServer.start();
       let response = await authServer.registerApplication(params);
-      let result = response.result;
+      let { result } = response;
       expect(result).to.have.all.keys(["client_id", "client_secret"]);
       expect(result.client_id).to.have.lengthOf(64);
       const clientId = result.client_id;
-      params = { client_id: clientId, username: "toto", password: "12345", email: "toto@test.com" };
+      params = {
+        client_id: clientId, username: "toto", password: "12345", email: "toto@test.com",
+      };
       response = await authServer.registerUser(params);
-      result = response.result;
+      ({ result } = response);
       expect(result).to.have.all.keys(["id", "email", "username"]);
       expect(result.id).to.have.lengthOf(32);
       params = {
@@ -159,7 +275,7 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
         redirect_uri: "localhost",
       };
       response = await authServer.authorizeAccess(params);
-      result = response.result;
+      ({ result } = response);
       expect(result).to.have.all.keys(["redirect_uri"]);
       assert.equal(
         result.redirect_uri,
@@ -167,7 +283,7 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
         "Redirect_uri is localhost",
       );
       response = await authServer.authorizeAccess(params);
-      result = response.result;
+      ({ result } = response);
       expect(result).to.have.all.keys(["redirect_uri"]);
       assert.equal(
         result.redirect_uri,
@@ -177,7 +293,7 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
     });
     it("should not authorize User", async () => {
       let params = {
-        name: "Opla",
+        name: "Zoapp",
         grant_type: "password",
         redirect_uri: "localhost",
         email: "toto@test.com",
@@ -186,13 +302,15 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
       await authServer.reset();
       await authServer.start();
       let response = await authServer.registerApplication(params);
-      let result = response.result;
+      let { result } = response;
       expect(result).to.have.all.keys(["client_id", "client_secret"]);
       expect(result.client_id).to.have.lengthOf(64);
       const clientId = result.client_id;
-      params = { client_id: clientId, username: "toto", password: "12345", email: "toto@test.com" };
+      params = {
+        client_id: clientId, username: "toto", password: "12345", email: "toto@test.com",
+      };
       response = await authServer.registerUser(params);
-      result = response.result;
+      ({ result } = response);
       expect(result).to.have.all.keys(["id", "email", "username"]);
       expect(result.id).to.have.lengthOf(32);
       params = {
@@ -201,7 +319,7 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
         redirect_uri: "localhost",
       };
       response = await authServer.authorizeAccess(params);
-      result = response.result;
+      ({ result } = response);
       assert.equal(result.error, "Not valid", "No credentials");
       params = {
         client_id: clientId,
@@ -210,14 +328,14 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
         redirect_uri: "localhost",
       };
       response = await authServer.authorizeAccess(params);
-      result = response.result;
+      ({ result } = response);
       assert.equal(result.error, "Wrong credentials", "Wrong password");
     });
   });
   describe("requestAccessToken", () => {
     it("should get accessToken", async () => {
       let params = {
-        name: "Opla",
+        name: "Zoapp",
         grant_type: "password",
         redirect_uri: "localhost",
         email: "toto@test.com",
@@ -226,13 +344,15 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
       await authServer.reset();
       await authServer.start();
       let response = await authServer.registerApplication(params);
-      let result = response.result;
+      let { result } = response;
       expect(result).to.have.all.keys(["client_id", "client_secret"]);
       expect(result.client_id).to.have.lengthOf(64);
       const clientId = result.client_id;
-      params = { client_id: clientId, username: "toto", password: "12345", email: "toto@test.com" };
+      params = {
+        client_id: clientId, username: "toto", password: "12345", email: "toto@test.com",
+      };
       response = await authServer.registerUser(params);
-      result = response.result;
+      ({ result } = response);
       expect(result).to.have.all.keys(["id", "email", "username"]);
       expect(result.id).to.have.lengthOf(32);
       params = {
@@ -242,7 +362,7 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
         redirect_uri: "localhost",
       };
       response = await authServer.authorizeAccess(params);
-      result = response.result;
+      ({ result } = response);
       expect(result).to.have.all.keys(["redirect_uri"]);
       assert.equal(
         result.redirect_uri,
@@ -257,13 +377,13 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
         grant_type: "password",
       };
       response = await authServer.requestAccessToken(params);
-      result = response.result;
+      ({ result } = response);
       expect(result).to.have.all.keys(["access_token", "expires_in", "scope"]);
       expect(result.access_token).to.have.lengthOf(48);
     });
     it("should not get accessToken", async () => {
       let params = {
-        name: "Opla",
+        name: "Zoapp",
         grant_type: "password",
         redirect_uri: "localhost",
         email: "toto@test.com",
@@ -272,13 +392,15 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
       await authServer.reset();
       await authServer.start();
       let response = await authServer.registerApplication(params);
-      let result = response.result;
+      let { result } = response;
       expect(result).to.have.all.keys(["client_id", "client_secret"]);
       expect(result.client_id).to.have.lengthOf(64);
       const clientId = result.client_id;
-      params = { client_id: clientId, username: "toto", password: "12345", email: "toto@test.com" };
+      params = {
+        client_id: clientId, username: "toto", password: "12345", email: "toto@test.com",
+      };
       response = await authServer.registerUser(params);
-      result = response.result;
+      ({ result } = response);
       expect(result).to.have.all.keys(["id", "email", "username"]);
       expect(result.id).to.have.lengthOf(32);
       params = {
@@ -288,7 +410,7 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
         redirect_uri: "localhost",
       };
       response = await authServer.authorizeAccess(params);
-      result = response.result;
+      ({ result } = response);
       expect(result).to.have.all.keys(["redirect_uri"]);
       assert.equal(
         result.redirect_uri,
@@ -302,7 +424,7 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
         redirect_uri: "localhost",
       };
       response = await authServer.requestAccessToken(params);
-      result = response.result;
+      ({ result } = response);
       assert.equal(
         result.error,
         "Unknown grant type: undefined",
@@ -315,7 +437,7 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
         grant_type: "password",
       };
       response = await authServer.requestAccessToken(params);
-      result = response.result;
+      ({ result } = response);
       assert.equal(result.error, "Can't authenticate", "No credentials");
       params = {
         client_id: clientId,
@@ -325,7 +447,7 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
         grant_type: "password",
       };
       response = await authServer.requestAccessToken(params);
-      result = response.result;
+      ({ result } = response);
       assert.equal(result.error, "Can't authenticate", "Wrong password");
       params = {
         username: "toto",
@@ -334,7 +456,7 @@ describeParams("AuthServer", [{ title: "MemDb", config: {} }, { title: "MySQL Db
         grant_type: "password",
       };
       response = await authServer.requestAccessToken(params);
-      result = response.result;
+      ({ result } = response);
       assert.equal(result.error, "Not authentified", "Wrong client_id");
     });
   });

@@ -193,6 +193,55 @@ export class ZOAuthServer {
   /**
    * Register a ResourceOwner User
    */
+  async anonymousAccess(params) {
+    const {
+      client_id: clientId, anonymous_secret: anonymousSecret,
+    } = params;
+    let app = null;
+    let response = null;
+    let username = null;
+    let userId = null;
+    if (clientId) {
+      app = await this.model.getApplication(clientId);
+      const policies = (app && app.policies) || { };
+      if (policies.authorizeAnonymous) {
+        let p = { client_id: clientId, anonymous_secret: anonymousSecret };
+        response = await this.registerUser(p);
+        if (response.result.id) {
+          ({ username, id: userId } = response.result);
+          p = {
+            client_id: clientId,
+            username,
+            password: anonymousSecret,
+            scope: "anonymous",
+            redirect_uri: "localhost",
+          };
+          response = await this.authorizeAccess(p);
+          if (response.result.redirect_uri) {
+            p = {
+              client_id: clientId,
+              username,
+              password: anonymousSecret,
+              grant_type: "password",
+            };
+            response = await this.requestAccessToken(p);
+            if (response.result.access_token) {
+              response.result.username = username;
+              response.result.user_id = userId;
+            }
+          }
+        }
+      }
+    }
+    if (!response) {
+      response = { error: "No client found" };
+    }
+    return response;
+  }
+
+  /**
+   * Register a ResourceOwner User
+   */
   async registerUser(params) {
     const {
       client_id: clientId, username, email, password, ...extras
@@ -214,15 +263,15 @@ export class ZOAuthServer {
       StringTools.stringIsEmpty(password)
     ) {
       if (
-        this.config.authorizeAnonymous &&
-        extras.anonymous_secret === this.config.anonymous_secret
+        policies.authorizeAnonymous &&
+        extras.anonymous_secret === policies.anonymous_secret
       ) {
         const token = this.model.generateAnonymousToken();
         const anonymous = `anonymous-${token}`;
         user = {
           username: anonymous,
           valid_email: false,
-          password,
+          password: policies.anonymous_secret,
           anonymous: true,
           anonymous_token: token,
           anonymous_secret: extras.anonymous_secret,
@@ -256,8 +305,10 @@ export class ZOAuthServer {
         response.result = {
           id: user.id,
           username: user.username,
-          email: user.email,
         };
+        if (user.email) {
+          response.result.email = user.email;
+        }
       } else {
         response.result = { error: "Can't save user" };
       }

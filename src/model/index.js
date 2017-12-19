@@ -154,11 +154,11 @@ export class ZOAuthModel {
     }
     Object.keys(u).forEach((key) => {
       const value = u[key];
-      if (key === "password") {
+      if (key === "password" && value) {
         // TODO check password complexity
         // TODO hash password
         cachedUser.password = StringTools.hashPassword(value);
-      } else {
+      } else if (value) {
         cachedUser[key] = value;
       }
     });

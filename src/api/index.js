@@ -18,7 +18,7 @@ const setHeaders = (res, status, cors) => {
   res.status(status);
 };
 
-const sendResponse = (data, res, ip) => {
+const sendResponse = async (data, res, ip) => {
   const status = data.error ? 401 : 200;
   setHeaders(res, status, ip);
   res.json(data);
@@ -47,29 +47,32 @@ export default (authServer = null, app = null, config = {}) => {
   a.authServer = authServer || zoauthServer(config);
 
   const router = Router();
-  router.get("/", (req, res) => {
+  router.get("/", async (req, res) => {
     sendResponse({ auth: "Ok" }, res);
   });
-  router.post("/application", (req, res) => {
+  router.post("/application", async (req, res) => {
     handleAuthFunc(req, res, params => a.authServer.registerApplication(params));
   });
-  router.post("/user", (req, res) => {
+  router.post("/anonymous", async (req, res) => {
+    handleAuthFunc(req, res, params => a.authServer.anonymousAccess(params));
+  });
+  router.post("/user", async (req, res) => {
     handleAuthFunc(req, res, params => a.authServer.registerUser(params));
   });
-  router.post("/authorize", (req, res) => {
+  router.post("/authorize", async (req, res) => {
     handleAuthFunc(req, res, params => a.authServer.authorizeAccess(params));
   });
-  router.post("/access_token", (req, res) => {
+  router.post("/access_token", async (req, res) => {
     handleAuthFunc(req, res, params => a.authServer.requestAccessToken(params));
   });
-  router.post("/scope", (req, res) => {
+  router.post("/scope", async (req, res) => {
     handleAuthFunc(req, res, params => a.authServer.registerScope(params));
   });
   /* eslint-disable no-unused-vars */
   /* router.use((err, req, res, next) => {
     res.status(500).json({ error: "internal server error" });
   }); */
-  router.use((req, res, next) => {
+  router.use(async (req, res, next) => {
     sendResponse({ error: "unknown request" }, res);
   });
   const defaultEndpoint = "auth";

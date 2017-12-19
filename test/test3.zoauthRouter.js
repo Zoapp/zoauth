@@ -38,25 +38,33 @@ describeParams("AuthRouter", [{ title: "MemDb", config: {} }, { title: "MySQL Db
       authServer = zoauthServer(config);
       await authServer.reset();
       await authServer.start();
-      let params = { name: "Opla", grant_type: "password", redirect_uri: "localhost", email: "toto@test.com" };
+      let params = {
+        name: "Zoapp", grant_type: "password", redirect_uri: "localhost", email: "toto@test.com",
+      };
       let response = await authServer.registerApplication(params);
-      let result = response.result;
+      let { result } = response;
       expect(result).to.have.all.keys(["client_id", "client_secret"]);
       expect(result.client_id).to.have.lengthOf(64);
       clientId = result.client_id;
-      params = { client_id: clientId, username: "toto", password: "12345", email: "toto@test.com" };
+      params = {
+        client_id: clientId, username: "toto", password: "12345", email: "toto@test.com",
+      };
       response = await authServer.registerUser(params);
-      result = response.result;
+      ({ result } = response);
       expect(result).to.have.all.keys(["id", "email", "username"]);
       expect(result.id).to.have.lengthOf(32);
-      params = { client_id: clientId, username: "toto", password: "12345", redirect_uri: "localhost", scope: "default" };
+      params = {
+        client_id: clientId, username: "toto", password: "12345", redirect_uri: "localhost", scope: "default",
+      };
       response = await authServer.authorizeAccess(params);
-      result = response.result;
+      ({ result } = response);
       expect(result).to.have.all.keys(["redirect_uri"]);
       assert.equal(result.redirect_uri, "localhost", "Redirect_uri is localhost");
-      params = { client_id: clientId, username: "toto", password: "12345", redirect_uri: "localhost", grant_type: "password" };
+      params = {
+        client_id: clientId, username: "toto", password: "12345", redirect_uri: "localhost", grant_type: "password",
+      };
       response = await authServer.requestAccessToken(params);
-      result = response.result;
+      ({ result } = response);
       expect(result).to.have.all.keys(["access_token", "expires_in", "scope"]);
       accessToken = result.access_token;
       expect(accessToken).to.have.lengthOf(48);
@@ -67,7 +75,7 @@ describeParams("AuthRouter", [{ title: "MemDb", config: {} }, { title: "MySQL Db
       await authServer.stop();
     });
 
-  /* eslint-disable no-unused-vars */
+    /* eslint-disable no-unused-vars */
 
     it("should route works", () => {
       authRouter.get("/", "default", (req, res) => {});
@@ -95,25 +103,33 @@ describeParams("AuthRouter", [{ title: "MemDb", config: {} }, { title: "MySQL Db
       authServer = zoauthServer(config);
       await authServer.reset();
       await authServer.start();
-      let params = { name: "Opla", grant_type: "password", redirect_uri: "localhost", email: "toto@test.com" };
+      let params = {
+        name: "Zoapp", grant_type: "password", redirect_uri: "localhost", email: "toto@test.com",
+      };
       let response = await authServer.registerApplication(params);
-      let result = response.result;
+      let { result } = response;
       expect(result).to.have.all.keys(["client_id", "client_secret"]);
       expect(result.client_id).to.have.lengthOf(64);
       clientId = result.client_id;
-      params = { client_id: clientId, username: "toto", password: "12345", email: "toto@test.com" };
+      params = {
+        client_id: clientId, username: "toto", password: "12345", email: "toto@test.com",
+      };
       response = await authServer.registerUser(params);
-      result = response.result;
+      ({ result } = response);
       expect(result).to.have.all.keys(["id", "email", "username"]);
       expect(result.id).to.have.lengthOf(32);
-      params = { client_id: clientId, username: "toto", password: "12345", redirect_uri: "localhost" };
+      params = {
+        client_id: clientId, username: "toto", password: "12345", redirect_uri: "localhost",
+      };
       response = await authServer.authorizeAccess(params);
-      result = response.result;
+      ({ result } = response);
       expect(result).to.have.all.keys(["redirect_uri"]);
       assert.equal(result.redirect_uri, "localhost", "Redirect_uri is localhost");
-      params = { client_id: clientId, username: "toto", password: "12345", redirect_uri: "localhost", grant_type: "password" };
+      params = {
+        client_id: clientId, username: "toto", password: "12345", redirect_uri: "localhost", grant_type: "password",
+      };
       response = await authServer.requestAccessToken(params);
-      result = response.result;
+      ({ result } = response);
       expect(result).to.have.all.keys(["access_token", "expires_in", "scope"]);
       accessScope = result.scope;
       accessToken = result.access_token;
@@ -125,32 +141,32 @@ describeParams("AuthRouter", [{ title: "MemDb", config: {} }, { title: "MySQL Db
       await authServer.stop();
     });
 
-  /* eslint-disable no-unused-vars */
+    /* eslint-disable no-unused-vars */
 
     it("should grantAccess works", async () => {
       authRouter.get("/", "default", (req, res) => {});
       const response = await authServer.grantAccess("/", "GET", accessToken);
-      const result = response.result;
+      const { result } = response;
       expect(result).to.have.all.keys(["access_token", "expires_in", "scope", "client_id", "user_id"]);
     });
 
     it("should not grantAccess", async () => {
       authRouter.get("/", "default", (req, res) => {});
       let response = await authServer.grantAccess("/", "GET");
-      let result = response.result;
+      let { result } = response;
       assert.equal(result.error, "No permission route", "Route '/' need accessToken");
       response = await authServer.grantAccess("/", "GET", "xxxx");
-      result = response.result;
+      ({ result } = response);
       assert.equal(result.error, "Not valid access token", "Route '/' need valid accessToken");
       response = await authServer.grantAccess("/", "POST");
-      result = response.result;
+      ({ result } = response);
       assert.equal(result.error, "No permission route", "Route '/' with post method is not available");
       response = await authServer.grantAccess("/", "POST", "xxxx");
-      result = response.result;
+      ({ result } = response);
       assert.equal(result.error, "No permission route", "Route '/' with post method is not available");
       authRouter.get("/admin", "admin", (req, res) => {});
       response = await authServer.grantAccess("/admin", "GET", accessToken);
-      result = response.result;
+      ({ result } = response);
       assert.equal(result.error, "Not allowed", "Route '/' is not allowed for default scope");
     });
   });
