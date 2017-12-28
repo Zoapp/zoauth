@@ -63,7 +63,7 @@ export class ZOAuthServer {
     return route;
   }
 
-  async grantAccess(routeName, method = "GET", accessToken = null) {
+  async grantAccess(routeName, method = "GET", accessToken = null, appCredentials = null) {
     const response = {};
     const route = this.findRoute(routeName, method);
     let access = null;
@@ -94,6 +94,10 @@ export class ZOAuthServer {
       }
     } else if (route && route.isOpen()) {
       response.result = { access: "open" };
+    } else if (route.isScopeValid("application") && (await this.validateApplicationCredentials(appCredentials))) {
+      response.result = {
+        client_id: appCredentials.id, scope: "application",
+      };
     } else {
       response.result = { error: "No permission route" };
     }
@@ -113,6 +117,14 @@ export class ZOAuthServer {
     return response;
   }
 
+  async validateApplicationCredentials(credentials) {
+    const app = await this.getApplication(credentials.id);
+    if (app && app.secret === credentials.secret) {
+      return true;
+    }
+    return false;
+  }
+  
   static validateApplicationName(name) {
     // TODO regex name validation
     let ret = true;
@@ -456,7 +468,7 @@ export class ZOAuthServer {
   }
 
   async getApplicationByName(name) {
-    const app = await this.model.getApplication(`name${name}`);
+    const app = await this.model.getApplication(`name=${name}`);
     return app;
   }
 }

@@ -49,6 +49,18 @@ const getAccessTokenFromRequest = (req) => {
   return accessToken;
 };
 
+const getAppCredentialsFromRequest = (req) => {
+  let id = req.get("client_id");
+  if (!id) {
+    id = req.query.client_id;
+  }
+  let secret = req.get("client_secret");
+  if (!secret) {
+    secret = req.query.client_secret;
+  }
+  return { id, secret };
+};
+
 class ZOAuthRoute {
   constructor(root, path, authCallback, description) {
     this.root = root;
@@ -100,9 +112,10 @@ export default class ZOAuthRouter {
 
   authMiddleware(req, res, next, callback = null) {
     const token = getAccessTokenFromRequest(req);
+    const appCredentials = getAppCredentialsFromRequest(req);
     const { method } = req;
     const routeName = req.route.path;
-    this.authServer.grantAccess(routeName, method, token).then((access) => {
+    this.authServer.grantAccess(routeName, method, token, appCredentials).then((access) => {
       let n = false;
       let context = null;
       let { result } = access;
