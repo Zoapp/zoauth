@@ -1,12 +1,12 @@
 {
   "name": "zoauth-server",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": "Mik BRY",
-  "license": "MIT",  
+  "license": "MIT",
   "description": "Authentification Server using ES7",
   "main": "index.js",
   "scripts": {
-    "clean-dist": "rm -r -f dist && mkdir dist",    
+    "clean-dist": "rm -r -f dist && mkdir dist",
     "start:dev": "nodemon -w src --exec \"babel-node src\"",
     "build:dev": "babel src -s -D -d dist",
     "start:prod": "node dist",
@@ -23,11 +23,11 @@
   ],
   "engines": {
     "node": ">=8.5.0"
-  },  
+  },
   "dependencies": {
     "body-parser": "^1.17.2",
     "express": "^4.15.3",
-    "zoapp-core": "0.2.4"
+    "zoapp-core": "0.3.0"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",

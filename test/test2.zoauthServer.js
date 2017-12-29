@@ -5,7 +5,10 @@
  * LICENSE file in the root directory of this source tree.
  */
 import { assert, expect } from "chai";
+import { setupLogger } from "zoapp-core";
 import zoauthServer from "../src/zoauthServer";
+
+setupLogger("test");
 
 const mysqlConfig = {
   database: {

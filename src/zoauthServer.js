@@ -56,7 +56,7 @@ export class ZOAuthServer {
 
   findRoute(routeName, method = "GET") {
     let route = this.getRoute(routeName);
-    // console.log("route=" + route ? JSON.stringify(route) : "no route");
+    // logger.info("route=" + route ? JSON.stringify(route) : "no route");
     if (!(route && route.isMethodValid(method))) {
       route = null;
     }
@@ -72,8 +72,8 @@ export class ZOAuthServer {
       if (access) {
         const authenticateUser = await this.model.getUser(access.user_id);
         if (authenticateUser) {
-          // console.log("access=", access);
-          // console.log("route=", route);
+          // logger.info("access=", access);
+          // logger.info("route=", route);
           if (route.isScopeValid(access.scope)) {
             /* eslint-disable camelcase */
             const {
@@ -94,7 +94,7 @@ export class ZOAuthServer {
       }
     } else if (route && route.isOpen()) {
       response.result = { access: "open" };
-    } else if (route.isScopeValid("application") && (await this.validateApplicationCredentials(appCredentials))) {
+    } else if (route && route.isScopeValid("application") && (await this.validateApplicationCredentials(appCredentials))) {
       response.result = {
         client_id: appCredentials.id, scope: "application",
       };
@@ -124,7 +124,7 @@ export class ZOAuthServer {
     }
     return false;
   }
-  
+
   static validateApplicationName(name) {
     // TODO regex name validation
     let ret = true;
@@ -147,7 +147,7 @@ export class ZOAuthServer {
       policies,
       domains,
     } = params;
-    // console.log("registerApplication");
+    // logger.info("registerApplication");
     const response = {};
     let app = null;
     const wrongEmail = !StringTools.isEmail(email);
@@ -164,7 +164,7 @@ export class ZOAuthServer {
           domains,
         };
       } else {
-        // console.log("app exist !");
+        // logger.info("app exist !");
         app = null;
         response.result = { error: "Can't register this application name" };
       }
@@ -176,7 +176,7 @@ export class ZOAuthServer {
 
     if (app) {
       app = await this.model.setApplication(app);
-      // console.log("app=", app);
+      // logger.info("app=", app);
       if (app) {
         response.result = { client_id: app.id, client_secret: app.secret };
       } else {
@@ -346,11 +346,11 @@ export class ZOAuthServer {
     let app = null;
     let user = null;
     let storedAuth = null;
-    // console.log("params", params);
+    // logger.info("params", params);
     if (clientId) {
       app = await this.model.getApplication(clientId);
     }
-    // console.log("authorizeAccess", userId, username, password);
+    // logger.info("authorizeAccess", userId, username, password);
     if (!StringTools.stringIsEmpty(userId)) {
       user = await this.model.getUser(userId);
     } else {

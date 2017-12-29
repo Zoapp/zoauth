@@ -11,8 +11,8 @@ export class ZOAuthModel {
   constructor(config = {}, database = null) {
     this.database = database;
     if (database == null) {
-      // console.log("config=", JSON.stringify(config));
-      // console.log("descriptor=", JSON.stringify(descriptor));
+      // logger.info("config=", JSON.stringify(config));
+      // logger.info("descriptor=", JSON.stringify(descriptor));
       this.database = dbCreate({ descriptor, ...config });
     }
     this.config = config;
@@ -162,7 +162,7 @@ export class ZOAuthModel {
         cachedUser[key] = value;
       }
     });
-    // console.log("cachedUser=" + cachedUser.id);
+    // logger.info("cachedUser=" + cachedUser.id);
     await users.setItem(userId, cachedUser);
     this.database.flush();
 
@@ -206,14 +206,14 @@ export class ZOAuthModel {
     let user = null;
     if (!StringTools.stringIsEmpty(login)) {
       await users.nextItem((u) => {
-        // console.log("getUserByNameOrEmail nexItem", u.email);
+        // logger.info("getUserByNameOrEmail nexItem", u.email);
         const e = u.email;
         const n = u.username;
         if (
           StringTools.strcasecmp(n, login) === 0 ||
           StringTools.strcasecmp(e, login) === 0
         ) {
-          // console.log("getUserByNameOrEmail found", u.email);
+          // logger.info("getUserByNameOrEmail found", u.email);
           user = u;
           return true;
         }
@@ -227,15 +227,15 @@ export class ZOAuthModel {
     let user = null;
     if (!StringTools.stringIsEmpty(password)) {
       user = await this.getUserByNameOrEmail(login);
-      // console.log("validateCredentials found", user);
+      // logger.info("validateCredentials found", user);
       if (user) {
         // const pw = StringTools.hashPassword(password);
-        // console.log("validateCredentials found", user.password, pw);
+        // logger.info("validateCredentials found", user.password, pw);
         if (
           password !== user.password &&
           StringTools.hashPassword(password) !== user.password
         ) {
-          // console.log("validateCredentials not ok");
+          // logger.info("validateCredentials not ok");
           user = null;
         }
       }
@@ -248,7 +248,7 @@ export class ZOAuthModel {
     authentications = this.getAuthentications(),
   ) {
     let auth = null;
-    // console.log("set Authen", authentication);
+    // logger.info("set Authen", authentication);
     if (authentication && authentication.client_id && authentication.user_id) {
       const clientId = authentication.client_id;
       const userId = authentication.user_id;
@@ -269,7 +269,7 @@ export class ZOAuthModel {
         auth.id = `${clientId}-${userId}`;
         auth.scope = this.validateScope(authentication.scope);
       }
-      // console.log("setAuthentification", auth);
+      // logger.info("setAuthentification", auth);
       await authentications.setItem(id, auth);
       this.database.flush();
     }
