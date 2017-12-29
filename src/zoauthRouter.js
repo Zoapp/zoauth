@@ -7,16 +7,6 @@
 import { Router } from "express";
 import RouteContext from "./routeContext";
 
-/* const setHeaders = (res, status, cors) => {
-  this.res.charset = "utf-8";
-  res.set("Content-Type", "application/json");
-  res.set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type,
-  access_token, client_id, client_secret");
-  res.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.set("Access-Control-Allow-Origin", cors || "*");
-  res.status(status);
-}; */
-
 const send = (res, payload, status = 200, cors = "*") => {
   const json = JSON.stringify(payload, (key, value) => {
     if (!value) {
@@ -31,13 +21,6 @@ const send = (res, payload, status = 200, cors = "*") => {
   res.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.set("Access-Control-Allow-Origin", cors || "*");
   res.status(status);
-
-  /* this.res.charset = "utf-8";
-  this.res.set("Content-Type", "application/json");
-  this.res.setHeader("Access-Control-Allow-Origin", "*"); // TODO
-  this.res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, PATCH, DELETE");
-  this.res.setHeader("Access-Control-Allow-Headers", "X-Requested-With,content-type,access_token,
-  client_id,client_secret"); */
   res.send(json);
 };
 
@@ -46,6 +29,7 @@ const getAccessTokenFromRequest = (req) => {
   if (!accessToken) {
     accessToken = req.query.access_token;
   }
+  // TODO validate accessToken
   return accessToken;
 };
 
@@ -58,6 +42,7 @@ const getAppCredentialsFromRequest = (req) => {
   if (!secret) {
     secret = req.query.client_secret;
   }
+  // TODO validate id, secret
   return { id, secret };
 };
 
@@ -88,7 +73,7 @@ class ZOAuthRoute {
           // TODO call logging
         } catch (error) {
           // TODO error logging
-          payload = { error: error.message };
+          payload = { error: error.message, stack: error.stack, code: error.code };
           status = 500;
         }
         send(res, payload, status, res.locals.access.cors);
@@ -133,7 +118,6 @@ export default class ZOAuthRouter {
       }
 
       const status = n ? 200 : 401;
-      // setHeaders(res, status, access.cors);
       if (n) {
         res.locals.access = access.result;
         res.locals.context = context;
