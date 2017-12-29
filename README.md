@@ -1,2 +1,2 @@
-# zoauth
+# zoauth [![Build Status](https://travis-ci.org/Zoapp/zoauth.svg?branch=master)](https://travis-ci.org/Zoapp/zoauth) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/dccbdebecb1046c6817bb694ad976463)](https://www.codacy.com/app/mikbry/zoauth?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Zoapp/zoauth&amp;utm_campaign=Badge_Grade) [![npm version](https://badge.fury.io/js/zoauth-server.svg)](https://badge.fury.io/js/zoauth-server)
 Authentication server using nodejs and modern javascript
