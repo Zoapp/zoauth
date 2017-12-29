@@ -25,8 +25,7 @@ const mysqlConfig = {
 const describeParams = (name, params, func) => {
   params.forEach((p) => {
     describe(`${name} using ${p.title}`, () =>
-      func(p.config),
-    );
+      func(p.config));
   });
 };
 
