@@ -1,5 +1,5 @@
 node_modules
-out
+docs
 dist
 lib
 *.DS_Store
