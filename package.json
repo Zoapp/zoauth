@@ -14,7 +14,8 @@
     "lint:dev": "eslint src --rule 'no-console: off'",
     "lint:prod": "eslint src",
     "test": "eslint test && ./node_modules/.bin/mocha --compilers js:babel-core/register --exit",
-    "willPublish": "yarn run lint:prod && yarn run test && yarn run build:prod"
+    "willPublish": "yarn run lint:prod && yarn run test && yarn run build:prod",
+    "docs": "./node_modules/.bin/jsdoc src -d docs"
   },
   "keywords": [
     "Node",
@@ -27,7 +28,8 @@
   "dependencies": {
     "body-parser": "^1.17.2",
     "express": "^4.15.3",
-    "zoapp-core": "0.3.0"
+    "zoapp-core": "0.3.0",
+    "jsdoc": "^3.5.5"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
@@ -40,7 +42,6 @@
     "eslint": "^4.13.1",
     "eslint-config-airbnb-base": "12.1.0",
     "eslint-plugin-import": "2.8.0",
-    "jsdoc": "~3.5.5",
     "mocha": "^4.0.1",
     "nodemon": "^1.13.1"
   }
