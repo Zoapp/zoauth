@@ -4,10 +4,26 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-import { Router } from "express";
+import { Router } from "express"; // Import the Router From Express
 import RouteContext from "./routeContext";
 
+/**
+ * @module Auth_Router
+ */
+
+
+/**
+ * "send" : It's a function used to send a Response.
+ *
+ * @memberof module:Auth_Router
+ *
+ * @param {*} res The Response Object.
+ * @param {*} payload The Payload Parameter.
+ * @param {*} status The status of Response
+ * @param {*} cors Required for the Cross-Origin.
+ */
 const send = (res, payload, status = 200, cors = "*") => {
+  // Construct the body.
   const json = JSON.stringify(payload, (key, value) => {
     if (!value) {
       return undefined;
@@ -15,6 +31,7 @@ const send = (res, payload, status = 200, cors = "*") => {
     return value;
   }, 0);
 
+  // Build Header.
   res.charset = "utf-8";
   res.set("Content-Type", "application/json");
   res.set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, access_token, client_id, client_secret");
@@ -24,6 +41,15 @@ const send = (res, payload, status = 200, cors = "*") => {
   res.send(json);
 };
 
+/**
+ * Use "getAccessTokenFromRequest" to get the accesstoken include in the Request.
+ *
+ * @memberof module:Auth_Router
+ *
+ * @param {*} req The Resquest Object.
+ *
+ * @returns {*} Return the accessToken.
+ */
 const getAccessTokenFromRequest = (req) => {
   let accessToken = req.get("access_token");
   if (!accessToken) {
@@ -33,6 +59,16 @@ const getAccessTokenFromRequest = (req) => {
   return accessToken;
 };
 
+/**
+ * Use "getAppCredentialsFromRequest" on the Request to get all Credentials
+ *
+ * @memberof module:Auth_Router
+ *
+ * @param {*} req The Resquest Object.
+ *
+ * @returns {object} The Client ID
+ * @returns {object} The Client Secret
+ */
 const getAppCredentialsFromRequest = (req) => {
   let id = req.get("client_id");
   if (!id) {
@@ -46,7 +82,21 @@ const getAppCredentialsFromRequest = (req) => {
   return { id, secret };
 };
 
+/**
+ * @class
+ * @memberof module:Auth_Router
+ * @alias ZOAuthRoute
+ * @classdesc "ZOAuthRoute" is used to create route.
+ */
 class ZOAuthRoute {
+  /**
+   * The constructor Init four parameters.
+   * @constructor
+   * @param {*} root The root init
+   * @param {*} path The route Path
+   * @param {*} authCallback CallBack
+   * @param {*} description The route description
+   */
   constructor(root, path, authCallback, description) {
     this.root = root;
     this.rootPath = path;
@@ -54,6 +104,17 @@ class ZOAuthRoute {
     this.description = description;
   }
 
+  /**
+   * The function "add()" is used to add a route.
+   *
+   * @memberof ZOAuthRoute
+   *
+   * @param {*} method
+   * @param {*} path
+   * @param {*} scopes
+   * @param {*} callback
+   * @param {*} authCallback
+   */
   add(method, path, scopes, callback, authCallback = null) {
     const { root } = this;
     const authCb = authCallback || this.authCallback;
@@ -82,7 +143,17 @@ class ZOAuthRoute {
   }
 }
 
+/**
+ * @class
+ * @memberof module:Auth_Router
+ * @alias ZOAuthRouter
+ * @classdesc "ZOAuthRouter" give some functions to work on route.
+ */
 export default class ZOAuthRouter {
+  /**
+   * Get the authServer and init him.
+   * @param {*} authServer
+   */
   constructor(authServer) {
     this.authServer = authServer;
     this.router = Router();
@@ -95,6 +166,16 @@ export default class ZOAuthRouter {
     };
   }
 
+  /**
+   * The function "authMiddleware" is used to manage auth security.
+   *
+   * @memberof ZOAuthRouter
+   *
+   * @param {*} req The Request Object
+   * @param {*} res The Response Object
+   * @param {*} next The next route.
+   * @param {*} callback The callback of route.
+   */
   authMiddleware(req, res, next, callback = null) {
     const token = getAccessTokenFromRequest(req);
     const appCredentials = getAppCredentialsFromRequest(req);
@@ -129,36 +210,111 @@ export default class ZOAuthRouter {
     });
   }
 
+  /**
+   * Used to created a route.
+   *
+   * @memberof ZOAuthRouter
+   *
+   * @param {*} path The path.
+   * @param {*} authCallback The callback use for auth.
+   * @param {*} description Description of the route.
+   */
   createRoute(path = null, authCallback = null, description = null) {
     return new ZOAuthRoute(this, path, authCallback, description);
   }
 
+  /**
+   * Used to add a new route.
+   *
+   * @memberof ZOAuthRouter
+   *
+   * @param {*} method The method use in this route (Ex: POST)
+   * @param {*} path The Path
+   * @param {*} scopes The Scope
+   * @param {*} callback The callback of route.
+   * @param {*} authCallback The authCallback of route.
+   */
   addRoute(method, path, scopes, callback, authCallback) {
     const route = this.createRoute();
     route.add(method, path, scopes, callback, authCallback);
     return route;
   }
 
+  /**
+   * Used to add a new route with method GET.
+   *
+   * @memberof ZOAuthRouter
+   *
+   * @param {*} path The Path
+   * @param {*} scopes The Scope
+   * @param {*} callback The callback of route.
+   * @param {*} authCallback The authCallback of route.
+   */
   get(path, scopes, callback, authCallback = null) {
     return this.addRoute("GET", path, scopes, callback, authCallback);
   }
 
+  /**
+   * Used to add a new route with method POST.
+   *
+   * @memberof ZOAuthRouter
+   *
+   * @param {*} path The Path
+   * @param {*} scopes The Scope
+   * @param {*} callback The callback of route.
+   * @param {*} authCallback The authCallback of route.
+   */
   post(path, scopes, callback, authCallback = null) {
     return this.addRoute("POST", path, scopes, callback, authCallback);
   }
 
+  /**
+   * Used to add a new route with method DELETE.
+   *
+   * @memberof ZOAuthRouter
+   *
+   * @param {*} path The Path
+   * @param {*} scopes The Scope
+   * @param {*} callback The callback of route.
+   * @param {*} authCallback The authCallback of route.
+   */
   delete(path, scopes, callback, authCallback = null) {
     return this.addRoute("DELETE", path, scopes, callback, authCallback);
   }
 
+  /**
+   * Used to add a new route with method PUT.
+   *
+   * @memberof ZOAuthRouter
+   *
+   * @param {*} path The Path
+   * @param {*} scopes The Scope
+   * @param {*} callback The callback of route.
+   * @param {*} authCallback The authCallback of route.
+   */
   put(path, scopes, callback, authCallback = null) {
     return this.addRoute("PUT", path, scopes, callback, authCallback);
   }
 
+  /**
+   * Used to add a new route with method ANY.
+   *
+   * @memberof ZOAuthRouter
+   *
+   * @param {*} path The Path
+   * @param {*} scopes The Scope
+   * @param {*} callback The callback of route.
+   * @param {*} authCallback The authCallback of route.
+   */
   any(path, scopes, callback, authCallback = null) {
     return this.addRoute("ANY", path, scopes, callback, authCallback);
   }
 
+  /**
+   * Use "expressRouter" to get the Router.
+   *
+   * @memberof ZOAuthRouter
+   */
   expressRouter() {
     return this.router;
   }
