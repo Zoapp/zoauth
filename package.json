@@ -15,7 +15,7 @@
     "lint:prod": "eslint src",
     "test": "eslint test && ./node_modules/.bin/mocha --compilers js:babel-core/register --exit",
     "willPublish": "yarn run lint:prod && yarn run test && yarn run build:prod",
-    "docs": "./node_modules/.bin/jsdoc src -d docs"
+    "docs": "./node_modules/.bin/jsdoc src --destination docs"
   },
   "keywords": [
     "Node",

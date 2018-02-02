@@ -4,6 +4,12 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
+
+/**
+ * @private
+ * @module ZoApi
+ */
+
 import http from "http";
 import bodyParser from "body-parser";
 import express, { Router } from "express";
@@ -12,6 +18,7 @@ import zoauthServer from "../zoauthServer";
 // Express inits
 /**
  * Use "setHeader" to initialise the header.
+ * @access private
  *
  * @param {*} res The Response.
  * @param {*} status The Statut who have the header.
@@ -22,35 +29,37 @@ const setHeaders = (res, status, cors) => {
   res.set("Access-Control-Allow-Headers", "Content-Type, access_token");
   res.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.set("Access-Control-Allow-Origin", cors || "*");
-  res.status(status); // -> Sets the HTTP status for the response.
+  res.status(status);
 };
 
 /**
  * Use "sendResponse" to set a Response with a Header to the Client.
  * <br>The fonction set the statut of Header (401 or 200) by testing the data attribute.
+ * @access private
  *
  * @param {*} data Contain all the data of response.
  * @param {*} res The Response.
  * @param {*} ip IP Address for Cross-Origin.
  */
 const sendResponse = async (data, res, ip) => {
-  const status = data.error ? 401 : 200; // -> Set status according to data.
+  const status = data.error ? 401 : 200;
   setHeaders(res, status, ip);
-  res.json(data); // -> Takes a Response stream and reads it to completion.
+  res.json(data);
 };
 
 /**
  * "handleAuthFunc" is use in the process of Routing.
+ * @access private
  *
  * @param {*} req The Request.
  * @param {*} res The Response.
  * @param {*} callback The Callback.
  */
 const handleAuthFunc = async (req, res, callback) => {
-  const params = req.body; // -> Get the body of Request.
+  const params = req.body;
   // logger.info(JSON.stringify(req.body));
-  const data = await callback(params); // -> Await causes execution to pause waiting a Promise.
-  const result = data.result || data; // -> Fill the const with "data" result or brut "data".
+  const data = await callback(params);
+  const result = data.result || data;
   // TODO ip for CORS
   // logger.info("response=", data);
   sendResponse(result, res);
@@ -59,17 +68,16 @@ const handleAuthFunc = async (req, res, callback) => {
 export default (authServer = null, app = null, config = {}) => {
   let needStart = false;
   let a = app;
-  if (!a) { // -> App don't exist : need to be created and started
-    a = express(); // -> Create an Express application.
-    a.server = http.createServer(a); // -> Create a Server
+  if (!a) {
+    a = express();
+    a.server = http.createServer(a);
     a.use(bodyParser.json());
     a.use(bodyParser.urlencoded({ extended: false }));
-    // \-> Middleware function in Express. Parses incoming requests with urlencoded payloads.
     needStart = true;
   }
   a.authServer = authServer || zoauthServer(config);
 
-  const router = Router(); // Get a router instance
+  const router = Router();
   router.get("/", async (req, res) => {
     sendResponse({ auth: "Ok" }, res);
   });
@@ -98,14 +106,14 @@ export default (authServer = null, app = null, config = {}) => {
   router.use(async (req, res, next) => {
     sendResponse({ error: "unknown request" }, res);
   });
-  const defaultEndpoint = "auth"; // -> Set the defaut end point
+  const defaultEndpoint = "auth";
   const api = config.api || { endpoint: defaultEndpoint };
   const endpoint = api.endpoint || defaultEndpoint;
   a.use(endpoint, router);
 
-  if (needStart) { // -> Start listening is server need to be start
+  if (needStart) {
     a.server.listen(process.env.PORT || api.port || 8081);
   }
 
-  return a; // -> Return the App
+  return a;
 };
