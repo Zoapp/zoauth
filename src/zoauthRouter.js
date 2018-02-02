@@ -8,14 +8,9 @@ import { Router } from "express"; // Import the Router From Express
 import RouteContext from "./routeContext";
 
 /**
- * @module Auth_Router
- */
-
-
-/**
  * "send" : It's a function used to send a Response.
  *
- * @memberof module:Auth_Router
+ * @memberof module:ZOAUTH
  *
  * @param {*} res The Response Object.
  * @param {*} payload The Payload Parameter.
@@ -44,7 +39,7 @@ const send = (res, payload, status = 200, cors = "*") => {
 /**
  * Use "getAccessTokenFromRequest" to get the accesstoken include in the Request.
  *
- * @memberof module:Auth_Router
+ * @memberof module:ZOAUTH
  *
  * @param {*} req The Resquest Object.
  *
@@ -62,7 +57,7 @@ const getAccessTokenFromRequest = (req) => {
 /**
  * Use "getAppCredentialsFromRequest" on the Request to get all Credentials
  *
- * @memberof module:Auth_Router
+ * @memberof module:ZOAUTH
  *
  * @param {*} req The Resquest Object.
  *
@@ -84,7 +79,7 @@ const getAppCredentialsFromRequest = (req) => {
 
 /**
  * @class
- * @memberof module:Auth_Router
+ * @memberof module:ZOAUTH
  * @alias ZOAuthRoute
  * @classdesc "ZOAuthRoute" is used to create route.
  */
@@ -109,8 +104,8 @@ class ZOAuthRoute {
    *
    * @memberof ZOAuthRoute
    *
-   * @param {*} method
-   * @param {*} path
+   * @param {*} method Method use.
+   * @param {*} path The Path
    * @param {*} scopes
    * @param {*} callback
    * @param {*} authCallback
@@ -145,7 +140,7 @@ class ZOAuthRoute {
 
 /**
  * @class
- * @memberof module:Auth_Router
+ * @memberof module:ZOAUTH
  * @alias ZOAuthRouter
  * @classdesc "ZOAuthRouter" give some functions to work on route.
  */

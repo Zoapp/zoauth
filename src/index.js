@@ -9,6 +9,10 @@ import authApi from "./api";
 import { ZOAuthServer } from "./zoauthServer";
 import ZOAuthRouter from "./zoauthRouter";
 
+/**
+ * @module ZOAUTH
+ */
+
 // Minimal bootstrap launch
 // authApi({});
 

@@ -7,6 +7,7 @@
 
 /**
  * @class
+ * @memberof module:ZOAUTH
  * @alias RouteContext
  * @classdesc "RouteContext" give some functions to work on Request and Response.
  */
