@@ -85,7 +85,7 @@ export class ZOAuthModel {
       /* eslint-enable no-await-in-loop */
       localApp = {};
       app.id = cid;
-      app.creation_date = Date.now();
+      app.creation_date = new Date();
     } else {
       clientId = app.id;
       localApp = await this.getApplication(clientId);
@@ -141,7 +141,7 @@ export class ZOAuthModel {
     if (!user.id) {
       // generate user_id
       u.id = this.generateId();
-      u.creation_date = Date.now();
+      u.creation_date = new Date();
       // check if username/email are valid and not already used
       if (cachedUser) {
         throw new Error("username / email are already used");
@@ -302,7 +302,7 @@ export class ZOAuthModel {
   ) {
     let accessToken = null;
     if (clientId && userId) {
-      const time = Date.now();
+      const time = new Date();
       let id = `${clientId}-${userId}`;
       accessToken = await sessions.getItem(id);
       if (!accessToken) {
