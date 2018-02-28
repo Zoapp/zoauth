@@ -8,6 +8,12 @@ import { StringTools, Password } from "zoapp-core";
 import createModel from "./model";
 import Route from "./model/route";
 
+/**
+ * @class
+ * @memberof module:ZOAUTH
+ * @alias ZOAuthServer
+ * @classdesc "ZOAuthServer" is the main server use in ZOAUTH module.
+ */
 export class ZOAuthServer {
   /* static ErrorsMessages = {
     CANT_REGISTER: "Can't register this application name",
@@ -16,6 +22,12 @@ export class ZOAuthServer {
     CANT_SAVE_APP: "Can't save application",
   }; */
 
+  /**
+   * Constructor of ZOAuthServer.
+   * @constructor
+   * @param {Array} config Configuration of table.
+   * @param {*} database Database used.
+   */
   constructor(config = {}, database = null) {
     this.config = { ...config };
     this.model = createModel(this.config.database, database);
@@ -26,22 +38,52 @@ export class ZOAuthServer {
 
   }
 
+  /**
+   * Start the Server
+   * @memberof ZOAuthServer
+   */
   async start() {
     await this.model.open();
   }
 
+  /**
+   * Stop the Server
+   * @memberof ZOAuthServer
+  */
   async stop() {
     await this.model.close();
   }
 
+  /**
+   * Reset the server
+   * @memberof ZOAuthServer
+   */
   async reset() {
     await this.model.reset();
   }
 
+  /**
+   * Return the route name.
+   * @memberof ZOAuthServer
+   *
+   * @param {*} routeName The routename
+   * @returns {*} Return the route in the permissionRoutes.
+   */
   getRoute(routeName) {
     return this.permissionRoutes[routeName];
   }
 
+  /**
+   * Use "addRoute" to create a new route.
+   * @memberof ZOAuthServer
+   *
+   * @param {*} routeName The Route name.
+   * @param {*} scope The Scope.
+   * @param {*} method The Method used.
+   * @param {*} auth Auth needed ?
+   *
+   * @returns {*} The route who created.
+   */
   addRoute(routeName, scope = "default", method = "GET", auth = true) {
     // Check if route is already present and add new scopes / methods
     let route = this.getRoute(routeName);
@@ -54,6 +96,15 @@ export class ZOAuthServer {
     return route;
   }
 
+  /**
+   * Use "findRoute" to get a route by his name.
+   * @memberof ZOAuthServer
+   *
+   * @param {*} routeName The Routename.
+   * @param {*} method The method used.
+   *
+   * @returns {*} Return the route or null if failed.
+   */
   findRoute(routeName, method = "GET") {
     let route = this.getRoute(routeName);
     // logger.info("route=" + route ? JSON.stringify(route) : "no route");
@@ -63,6 +114,17 @@ export class ZOAuthServer {
     return route;
   }
 
+  /**
+   * Use "grantAccess" to manage security.
+   * @memberof ZOAuthServer
+   *
+   * @param {*} routeName The route name
+   * @param {*} method The method use.
+   * @param {*} accessToken The Token.
+   * @param {*} appCredentials The Credentials.
+   *
+   * @returns {Response} Return an Response object with some value usable for security.
+   */
   async grantAccess(routeName, method = "GET", accessToken = null, appCredentials = null) {
     const response = {};
     const route = this.findRoute(routeName, method);
@@ -104,6 +166,11 @@ export class ZOAuthServer {
     return response;
   }
 
+  /**
+   * @memberof ZOAuthServer
+   * @param {*} params Parameters
+   * @returns {object} Return a Response Object.
+   */
   static validatePassword(params) {
     const { password } = params;
     const response = {};
@@ -117,6 +184,11 @@ export class ZOAuthServer {
     return response;
   }
 
+  /**
+   * @memberof ZOAuthServer
+   * @param {*} credentials The Credentials
+   * @returns {bool} Return true if credentials are good else return false.
+   */
   async validateApplicationCredentials(credentials) {
     const app = await this.getApplication(credentials.id);
     if (app && app.secret === credentials.secret) {
@@ -125,6 +197,11 @@ export class ZOAuthServer {
     return false;
   }
 
+  /**
+   * @memberof ZOAuthServer
+   * @param {*} name The name
+   * @returns {bool} If name is invalid return false else return true.
+   */
   static validateApplicationName(name) {
     // TODO regex name validation
     let ret = true;
@@ -136,6 +213,10 @@ export class ZOAuthServer {
 
   /**
    * Register a Client Application
+   * @memberof ZOAuthServer
+   * @param {*} params
+   *
+   * @returns {object} Return a Response Object.
    */
   async registerApplication(params) {
     const {
@@ -187,6 +268,17 @@ export class ZOAuthServer {
     return response;
   }
 
+  /**
+   * Use "validateCredentialsValue" to check CredentialsValue.
+   *
+   * @memberof ZOAuthServer
+   * @param {*} username The Username.
+   * @param {*} email The Email.
+   * @param {*} password The Password.
+   * @param {Array} policies Policies you want to use
+   *
+   * @returns {bool}
+   */
   static validateCredentialsValue(username, email, password, policies = { userNeedEmail: true }) {
     // TODO regex username validation
     let ret = true;
@@ -203,7 +295,12 @@ export class ZOAuthServer {
   }
 
   /**
-   * Register a ResourceOwner User
+   * Create an anonymous user access.
+   *
+   * @memberof ZOAuthServer
+   * @param {*} params Parameters to Use.
+   *
+   * @returns {object} Return a Response Object.
    */
   async anonymousAccess(params) {
     const {
@@ -253,6 +350,11 @@ export class ZOAuthServer {
 
   /**
    * Register a ResourceOwner User
+   *
+   * @memberof ZOAuthServer
+   * @param {*} params Parameters to Use.
+   *
+   * @returns {object} Return a Response Object.
    */
   async registerUser(params) {
     const {
@@ -329,7 +431,12 @@ export class ZOAuthServer {
   }
 
   /**
-   * Authorize a resourceOwner ($userId) to access Resources using an application ($clientId)
+   * Authorize a resourceOwner ($userId) to access Resources using an application ($clientId).
+   *
+   * @memberof ZOAuthServer
+   * @param {*} params Parameters to Use.
+   *
+   * @returns {object} Return a Response Object.
    */
   async authorizeAccess(params) {
     const {
@@ -382,7 +489,12 @@ export class ZOAuthServer {
   }
 
   /**
-   * Request an access token
+   * Request an access token.
+   *
+   * @memberof ZOAuthServer
+   * @param {*} params Parameters to Use.
+   *
+   * @returns {object} Return a Response Object.
    */
   async requestAccessToken(params) {
     const {
@@ -438,6 +550,8 @@ export class ZOAuthServer {
   /* eslint-disable class-methods-use-this */
   /**
    * Register a Scope
+   * @memberof ZOAuthServer
+   * @ignore
    */
   registerScope(params) {
     // TODO
@@ -445,11 +559,20 @@ export class ZOAuthServer {
 
   /**
    * Register a grant type
+   * @memberof ZOAuthServer
+   * @ignore
    */
   registerGrantType(params) {
     // TODO
   }
 
+  /**
+   * Get the User by this id and delete is password.
+   * @memberof ZOAuthServer
+   * @param {*} id User ID
+   *
+   * @returns {object} User Object.
+   */
   async getUser(id) {
     const user = await this.model.getUser(id);
     if (user) {
@@ -458,15 +581,30 @@ export class ZOAuthServer {
     return user;
   }
 
+  /**
+   * @memberof ZOAuthServer.
+   * @param {*} scope The Scope.
+   * @param {*} clientId The Client ID.
+   */
   async getAuthsWithScope(scope, clientId) {
     return this.model.queryAuthentications(`scope=${scope} AND client_id=${clientId}`);
   }
 
+  /**
+   * @memberof ZOAuthServer.
+   * @param {*} id The ID.
+   * @returns {object} Return the app.
+   */
   async getApplication(id) {
     const app = await this.model.getApplication(id);
     return app;
   }
 
+  /**
+   * @memberof ZOAuthServer
+   * @param {*} name The name
+   * @returns {object} Return the app.
+   */
   async getApplicationByName(name) {
     const app = await this.model.getApplication(`name=${name}`);
     return app;

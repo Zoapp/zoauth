@@ -4,12 +4,26 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
+
+/**
+ * @private
+ * @module ZoApi
+ */
+
 import http from "http";
 import bodyParser from "body-parser";
 import express, { Router } from "express";
 import zoauthServer from "../zoauthServer";
 
 // Express inits
+/**
+ * Use "setHeader" to initialise the header.
+ * @access private
+ *
+ * @param {*} res The Response.
+ * @param {*} status The Statut who have the header.
+ * @param {*} cors Required for the Cross-Origin.
+ */
 const setHeaders = (res, status, cors) => {
   res.set("Content-Type", "application/json");
   res.set("Access-Control-Allow-Headers", "Content-Type, access_token");
@@ -18,12 +32,29 @@ const setHeaders = (res, status, cors) => {
   res.status(status);
 };
 
+/**
+ * Use "sendResponse" to set a Response with a Header to the Client.
+ * <br>The fonction set the statut of Header (401 or 200) by testing the data attribute.
+ * @access private
+ *
+ * @param {*} data Contain all the data of response.
+ * @param {*} res The Response.
+ * @param {*} ip IP Address for Cross-Origin.
+ */
 const sendResponse = async (data, res, ip) => {
   const status = data.error ? 401 : 200;
   setHeaders(res, status, ip);
   res.json(data);
 };
 
+/**
+ * "handleAuthFunc" is use in the process of Routing.
+ * @access private
+ *
+ * @param {*} req The Request.
+ * @param {*} res The Response.
+ * @param {*} callback The Callback.
+ */
 const handleAuthFunc = async (req, res, callback) => {
   const params = req.body;
   // logger.info(JSON.stringify(req.body));
