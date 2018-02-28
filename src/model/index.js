@@ -17,6 +17,7 @@ export class ZOAuthModel {
     }
     this.config = config;
     this.tokenExpiration = this.config.tokenExpiration || 3600;
+    this.refreshTokenExpiration = this.config.refreshTokenExpiration || 86400;
   }
 
   async open() {
@@ -41,6 +42,10 @@ export class ZOAuthModel {
 
   generateAccessToken() {
     return this.database.generateToken(48);
+  }
+
+  generateRefreshToken() {
+    return this.database.generateToken(32);
   }
 
   generateId() {
@@ -340,8 +345,11 @@ export class ZOAuthModel {
     if (accessToken) {
       await sessions.nextItem((a) => {
         if (a.access_token === accessToken) {
-          access = a;
-          return true;
+          const expirationDate = a.created + (a.expires_in * 1000);
+          if (expirationDate > new Date().getTime()) {
+            access = a;
+            return true;
+          }
         }
         return false;
       });
