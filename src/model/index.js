@@ -15,6 +15,7 @@ export class ZOAuthModel {
       // logger.info("descriptor=", JSON.stringify(descriptor));
       this.database = dbCreate({ descriptor, ...config });
     }
+    this.now = new Date();
     this.config = config;
     this.tokenExpiration = this.config.tokenExpiration || 3600;
   }
@@ -302,7 +303,7 @@ export class ZOAuthModel {
   ) {
     let accessToken = null;
     if (clientId && userId) {
-      const time = Date.now();
+      const time = this.now;
       let id = `${clientId}-${userId}`;
       accessToken = await sessions.getItem(id);
       if (!accessToken) {
@@ -334,8 +335,13 @@ export class ZOAuthModel {
     if (accessToken) {
       await sessions.nextItem((a) => {
         if (a.access_token === accessToken) {
-          access = a;
-          return true;
+          const aDate = new Date(a.created);
+          aDate.setSeconds(aDate.getSeconds() + a.expires_in);
+          if (aDate > new Date()) {
+            access = a;
+            return true;
+          }
+          return false;
         }
         return false;
       });

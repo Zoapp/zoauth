@@ -18,6 +18,7 @@ const mysqlConfig = {
     host: "localhost",
     name: "auth_test",
     user: "root",
+    password: "toor",
   },
   endpoint: "/auth",
 };

@@ -28,7 +28,7 @@
   "dependencies": {
     "body-parser": "^1.17.2",
     "express": "^4.15.3",
-    "zoapp-core": "0.3.0",
+    "zoapp-core": "0.7.0",
     "jsdoc": "^3.5.5"
   },
   "devDependencies": {
