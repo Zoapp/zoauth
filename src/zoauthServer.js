@@ -406,6 +406,8 @@ export class ZOAuthServer {
 
   /**
    * Request an access token
+   * Inspired by Offical Doc of OAuth2, resume here :
+   * https://docs.google.com/document/d/1yEzRcvOlHXoMmBmV49G4HxAPEmkWuW7CFGo2cuDYdfo/edit?usp=sharing
    */
   async requestAccessToken(params) {
     const {
@@ -416,41 +418,94 @@ export class ZOAuthServer {
       client_id: clientId,
       /* ...extras */
     } = params;
-    const response = {};
-    let authentication = null;
-    let user = null;
-    // Only grantType = password for now
+    const refreshToken = null;
+    let response = {};
     if (grantType === "password") {
-      // validate user
-      user = await this.model.validateCredentials(username, password);
-      if (user) {
-        // validate authentication
-        authentication = await this.model.getAuthentication(clientId, user.id);
-        if (!authentication) {
-          response.result = { error: "Not authentified" };
-        }
-        // TODO extras, redirectUri
-      } else {
-        response.result = { error: "Can't authenticate" };
-      }
+      response = this.requestGrantTypePassword(clientId, username, password);
+    } else if (grantType === "refresh_token") {
+      response = this.requestGrantTypeRefreshToken(clientId, refreshToken);
+    } else if (grantType === "client_credential") {
+      response = this.requestGrantTypeClientCredential(clientId);
     } else {
       response.result = { error: `Unknown grant type: ${grantType}` };
     }
+    return response;
+  }
 
+  /**
+   * requestGrantTypePassword() used in requestAccessToken() for GrantType Password
+   *
+   * The Password grant type is used to obtain additional access tokens
+   * in order to prolong the client’s authorization of a user’s resources.
+   *
+   * Password Grant require : client_id, client_secret, "redirect_uri", username, password
+   */
+  async requestGrantTypePassword(clientId, username, password) {
+    const response = {};
+    let authentication = null;
+    let user = null;
+    // validate user
+    user = await this.model.validateCredentials(username, password);
+    if (user) {
+      // validate authentication
+      authentication = await this.model.getAuthentication(
+        clientId,
+        user.id,
+      );
+      if (!authentication) {
+        response.result = { error: "Not authentified" };
+      }
+      // TODO extras, redirectUri
+    } else {
+      response.result = { error: "Can't authenticate" };
+    }
     if (user && authentication) {
       // generate accessToken
       const { scope } = authentication;
-      const accessToken = await this.model.getAccessToken(
+      const session = await this.model.getAccessToken(
         clientId,
         user.id,
         scope,
       );
       response.result = {
-        access_token: accessToken.access_token,
-        expires_in: accessToken.expires_in,
-        scope: accessToken.scope,
+        access_token: session.access_token,
+        expires_in: session.expires_in,
+        scope: session.scope,
       };
     }
+    return response;
+  }
+
+  /* eslint-disable no-unused-vars */
+  /* eslint-disable class-methods-use-this */
+  /**
+   * requestGrantTypeRefreshToken() used in requestAccessToken() for GrantType Refresh Token
+   *
+   * The Refresh Token grant type is used to obtain a new access token
+   * without setting a password.
+   *
+   * Refresh Token Grant require : client_id, client_secret, refresh_token
+   */
+  async requestGrantTypeRefreshToken(clientId, username, password) {
+    const response = {};
+    response.result = { error: "Function Empty" };
+    return response;
+  }
+
+  /* eslint-disable no-unused-vars */
+  /* eslint-disable class-methods-use-this */
+  /**
+   * requestGrantTypeRefreshClientCredential() used in requestAccessToken()
+   * for GrantType Client Credential
+   *
+   * The Client Credentials grant type is used when the client is
+   * requesting access to protected resources under its control
+   *
+   * Refresh Token Grant require : client_id, client_secret
+   */
+  async requestGrantTypeClientCredential(clientId, clientSecret) {
+    const response = {};
+    response.result = { error: "Function Empty" };
     return response;
   }
 
