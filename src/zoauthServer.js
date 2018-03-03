@@ -487,9 +487,11 @@ export class ZOAuthServer {
    * Refresh Token Grant require : client_id, client_secret, refresh_token
    */
   async requestGrantTypeRefreshToken(clientId, username, password) {
-    const response = {};
-    response.result = { error: "Function Empty" };
-    return response;
+    return {
+      result: {
+        error: "Function Empty",
+      },
+    };
   }
 
   /* eslint-disable no-unused-vars */
@@ -504,9 +506,11 @@ export class ZOAuthServer {
    * Refresh Token Grant require : client_id, client_secret
    */
   async requestGrantTypeClientCredential(clientId, clientSecret) {
-    const response = {};
-    response.result = { error: "Function Empty" };
-    return response;
+    return {
+      result: {
+        error: "Function Empty",
+      },
+    };
   }
 
   /* eslint-disable no-unused-vars */
