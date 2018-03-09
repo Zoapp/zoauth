@@ -8,6 +8,10 @@ import { StringTools, Password } from "zoapp-core";
 import createModel from "./model";
 import Route from "./model/route";
 
+const GRANT_TYPE_PASSWORD = "password";
+const GRANT_TYPE_REFRESH_TOKEN = "refresh_token";
+const GRANT_TYPE_CLIENT_CREDENTIALS = "client_credentials";
+
 export class ZOAuthServer {
   /* static ErrorsMessages = {
     CANT_REGISTER: "Can't register this application name",
@@ -15,7 +19,6 @@ export class ZOAuthServer {
     WRONG_NAME: "Wrong name sent",
     CANT_SAVE_APP: "Can't save application",
   }; */
-
   constructor(config = {}, database = null) {
     this.config = { ...config };
     this.model = createModel(this.config.database, database);
@@ -420,12 +423,12 @@ export class ZOAuthServer {
     } = params;
     const refreshToken = null;
     let response = {};
-    if (grantType === "password") {
+    if (grantType === GRANT_TYPE_PASSWORD) {
       response = this.requestGrantTypePassword(clientId, username, password);
-    } else if (grantType === "refresh_token") {
+    } else if (grantType === GRANT_TYPE_REFRESH_TOKEN) {
       response = this.requestGrantTypeRefreshToken(clientId, refreshToken);
-    } else if (grantType === "client_credential") {
-      response = this.requestGrantTypeClientCredential(clientId);
+    } else if (grantType === GRANT_TYPE_CLIENT_CREDENTIALS) {
+      response = this.requestGrantTypeClientCredentials(clientId);
     } else {
       response.result = { error: `Unknown grant type: ${grantType}` };
     }
@@ -506,7 +509,7 @@ export class ZOAuthServer {
    *
    * Refresh Token Grant require : client_id, client_secret
    */
-  async requestGrantTypeClientCredential(clientId, clientSecret) {
+  async requestGrantTypeClientCredentials(clientId, clientSecret) {
     return {
       result: {
         error: "Function Empty",
