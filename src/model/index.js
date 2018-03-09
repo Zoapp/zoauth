@@ -313,7 +313,6 @@ export class ZOAuthModel {
     sessions = this.getSessions(),
   ) {
     let actualSession = null;
-    let accessToken = null;
     let refreshToken = null;
     if (clientId && userId) {
       const time = Date.now();
@@ -321,51 +320,42 @@ export class ZOAuthModel {
       actualSession = await sessions.getItem(id);
       if (!actualSession) {
         if (grantType === "password") {
-          refreshToken = await this.getRefreshToken(actualSession);
+          refreshToken = await this.getRefreshToken();
+          actualSession = {
+            access_token: this.generateAccessToken(),
+            expires_in: expiration,
+            scope,
+            client_id: clientId,
+            user_id: userId,
+            id,
+            access_created: time,
+            created: time,
+            refresh_token: refreshToken.refresh_token,
+            refresh_expires_in: refreshToken.refresh_expires_in,
+            refresh_created: refreshToken.refresh_created,
+          };
         }
-        accessToken = {
-          access_token: this.generateAccessToken(),
-          expires_in: expiration,
-          scope,
-          client_id: clientId,
-          user_id: userId,
-          id,
-          access_created: time,
-          created: time,
-          // Add Refresh_Token here, but promise is null
-        };
         id = null;
       } else {
-        accessToken.last = time;
+        actualSession.last = time;
         // TODO handle token expiration
         if (scope) {
-          accessToken.scope = scope;
+          actualSession.scope = scope;
         }
       }
-      if (refreshToken !== null) {
-        await sessions.setItem(id, refreshToken);
-      }
-      await sessions.setItem(id, accessToken);
+      await sessions.setItem(id, actualSession);
       // this.database.flush();
     }
-    return accessToken;
+    return actualSession;
   }
 
-  async getRefreshToken(
-    sessions,
-    expiration = this.refreshTokenExpiration,
-  ) {
-    let refreshToken = null;
+  async getRefreshToken(expiration = this.refreshTokenExpiration) {
     const time = Date.now();
-    if (!sessions) {
-      refreshToken = null;
-    } else {
-      refreshToken = {
-        refresh_token: this.generateRefreshToken(),
-        refresh_expires_in: expiration,
-        refresh_created: time,
-      };
-    }
+    const refreshToken = {
+      refresh_token: this.generateRefreshToken(),
+      refresh_expires_in: expiration,
+      refresh_created: time,
+    };
     return refreshToken;
   }
 

@@ -467,11 +467,10 @@ export class ZOAuthServer {
         user.id,
         scope,
       );
-      const refreshToken = this.model.getRefreshToken(clientId, user.id);
       response.result = {
         access_token: session.access_token,
         expires_in: session.expires_in,
-        refresh_token: refreshToken,
+        refresh_token: session.refresh_token,
         scope: session.scope,
       };
     }
