@@ -11,7 +11,7 @@ const send = (res, payload, status = 200, cors = "*") => {
   const json = JSON.stringify(
     payload,
     (key, value) => {
-      if (!value) {
+      if (!value && value !== 0) {
         return undefined;
       }
       return value;
