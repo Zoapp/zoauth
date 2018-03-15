@@ -338,9 +338,35 @@ export class ZOAuthModel {
             refresh_expires_in: refreshToken.refresh_expires_in,
             refresh_created: refreshToken.refresh_created,
           };
+        } else if (grantType === GRANT_TYPE_CLIENT_CREDENTIALS) {
+          actualSession = {
+            access_token: this.generateAccessToken(),
+            expires_in: expiration,
+            scope,
+            client_id: clientId,
+            user_id: userId,
+            id,
+            access_created: time,
+            created: time,
+          };
         }
         id = null;
       } else {
+        if (grantType === GRANT_TYPE_REFRESH_TOKEN) {
+          refreshToken = await this.getRefreshToken();
+          actualSession = {
+            access_token: this.generateAccessToken(),
+            expires_in: expiration,
+            scope,
+            client_id: clientId,
+            user_id: userId,
+            id,
+            access_created: time,
+            refresh_token: refreshToken.refresh_token,
+            refresh_expires_in: refreshToken.refresh_expires_in,
+            refresh_created: refreshToken.refresh_created,
+          };
+        }
         actualSession.last = time;
         // TODO handle token expiration
         if (scope) {
