@@ -7,7 +7,7 @@
 import { Router } from "express";
 import RouteContext from "./routeContext";
 
-const send = (res, payload, status = 200, cors = "*") => {
+export const send = (res, payload, status = 200, cors = "*") => {
   const json = JSON.stringify(
     payload,
     (key, value) => {
