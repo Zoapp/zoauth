@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 import zoauthServer from "zoauth/zoauthServer";
-import ZOAuthRouter from "zoauth/zoauthRouter";
+import ZOAuthRouter, { send } from "zoauth/zoauthRouter";
 
 const mysqlConfig = {
   database: {
@@ -230,3 +230,34 @@ describeParams(
     });
   },
 );
+
+describe("zoauthRouter", () => {
+  const resMock = {
+    send: jest.fn(),
+    set: jest.fn(),
+    status: jest.fn(),
+  };
+
+  describe("send()", () => {
+    it("removes null values in response payload", () => {
+      const payload = { count: null };
+
+      send(resMock, payload);
+      expect(resMock.send).toHaveBeenCalledWith("{}");
+    });
+
+    it("removes undefined values in response payload", () => {
+      const payload = { count: undefined };
+
+      send(resMock, payload);
+      expect(resMock.send).toHaveBeenCalledWith("{}");
+    });
+
+    it("does not remove 0 values in response payload", () => {
+      const payload = { count: 0 };
+
+      send(resMock, payload);
+      expect(resMock.send).toHaveBeenCalledWith(JSON.stringify(payload));
+    });
+  });
+});
