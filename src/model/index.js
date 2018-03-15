@@ -7,6 +7,10 @@
 import { StringTools, dbCreate } from "zoapp-core";
 import descriptor from "./descriptor";
 
+const GRANT_TYPE_PASSWORD = "password";
+const GRANT_TYPE_REFRESH_TOKEN = "refresh_token";
+const GRANT_TYPE_CLIENT_CREDENTIALS = "client_credentials";
+
 export class ZOAuthModel {
   constructor(config = {}, database = null) {
     this.database = database;
@@ -308,7 +312,7 @@ export class ZOAuthModel {
     clientId,
     userId,
     scope,
-    grantType = "password", // by defaut, other grant type are not supported for moment
+    grantType = GRANT_TYPE_PASSWORD, // by defaut, other grant type are not supported for moment
     expiration = this.tokenExpiration,
     sessions = this.getSessions(),
   ) {
@@ -319,7 +323,7 @@ export class ZOAuthModel {
       let id = `${clientId}-${userId}`;
       actualSession = await sessions.getItem(id);
       if (!actualSession) {
-        if (grantType === "password") {
+        if (grantType === GRANT_TYPE_PASSWORD) {
           refreshToken = await this.getRefreshToken();
           actualSession = {
             access_token: this.generateAccessToken(),
