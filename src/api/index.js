@@ -51,22 +51,26 @@ export default (authServer = null, app = null, config = {}) => {
     sendResponse({ auth: "Ok" }, res);
   });
   router.post("/application", async (req, res) => {
-    handleAuthFunc(req, res, params => a.authServer.registerApplication(params));
+    handleAuthFunc(req, res, (params) =>
+      a.authServer.registerApplication(params),
+    );
   });
   router.post("/anonymous", async (req, res) => {
-    handleAuthFunc(req, res, params => a.authServer.anonymousAccess(params));
+    handleAuthFunc(req, res, (params) => a.authServer.anonymousAccess(params));
   });
   router.post("/user", async (req, res) => {
-    handleAuthFunc(req, res, params => a.authServer.registerUser(params));
+    handleAuthFunc(req, res, (params) => a.authServer.registerUser(params));
   });
   router.post("/authorize", async (req, res) => {
-    handleAuthFunc(req, res, params => a.authServer.authorizeAccess(params));
+    handleAuthFunc(req, res, (params) => a.authServer.authorizeAccess(params));
   });
   router.post("/access_token", async (req, res) => {
-    handleAuthFunc(req, res, params => a.authServer.requestAccessToken(params));
+    handleAuthFunc(req, res, (params) =>
+      a.authServer.requestAccessToken(params),
+    );
   });
   router.post("/scope", async (req, res) => {
-    handleAuthFunc(req, res, params => a.authServer.registerScope(params));
+    handleAuthFunc(req, res, (params) => a.authServer.registerScope(params));
   });
   /* eslint-disable no-unused-vars */
   /* router.use((err, req, res, next) => {

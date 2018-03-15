@@ -20,4 +20,4 @@ export default (config = {}, app = null) => {
   return authServer;
 };
 
-export const AuthRouter = authServer => new ZOAuthRouter(authServer);
+export const AuthRouter = (authServer) => new ZOAuthRouter(authServer);

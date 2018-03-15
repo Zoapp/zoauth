@@ -108,9 +108,12 @@ export class ZOAuthModel {
     let application = null;
     if (appId) {
       application = await applications.getItem(appId);
-      if (!(
-        application &&
-        (StringTools.stringIsEmpty(appSecret) || application.secret === appSecret))
+      if (
+        !(
+          application &&
+          (StringTools.stringIsEmpty(appSecret) ||
+            application.secret === appSecret)
+        )
       ) {
         application = null;
       }
@@ -289,7 +292,10 @@ export class ZOAuthModel {
     return null;
   }
 
-  async queryAuthentications(query, authentications = this.getAuthentications()) {
+  async queryAuthentications(
+    query,
+    authentications = this.getAuthentications(),
+  ) {
     return authentications.getItem(query);
   }
 
