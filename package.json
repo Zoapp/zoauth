@@ -7,13 +7,13 @@
   "main": "index.js",
   "scripts": {
     "clean-dist": "rm -r -f dist && mkdir dist",
+    "compile": "yarn clean-dist && babel src -s -D -d dist && cp -f ./package.json ./dist/package.json && cp -f ./LICENSE ./dist/LICENSE && cp -f ./README.md ./dist/README.md",
+    "compile:dev": "babel src -s -D -d dist",
+    "dev": "yarn compile:dev && yarn start:dev",
+    "lint": "eslint src tests",
+    "start": "node dist",
     "start:dev": "nodemon -w src --exec \"babel-node src\"",
-    "build:dev": "babel src -s -D -d dist",
-    "start:prod": "node dist",
-    "build:prod": "yarn clean-dist && babel src -s -D -d dist && cp -f ./package.json ./dist/package.json && cp -f ./LICENSE ./dist/LICENSE && cp -f ./README.md ./dist/README.md",
-    "lint:dev": "eslint src --rule 'no-console: off'",
-    "lint:prod": "eslint src",
-    "test": "eslint test && ./node_modules/.bin/mocha --compilers js:babel-core/register --exit",
+    "test": "jest --runInBand --forceExit",
     "willPublish": "yarn run lint:prod && yarn run test && yarn run build:prod"
   },
   "keywords": [
@@ -21,26 +21,34 @@
     "ES7",
     "OAuth2"
   ],
-  "engines": {
-    "node": ">=8.5.0"
-  },
   "dependencies": {
     "body-parser": "^1.17.2",
     "express": "^4.15.3",
-    "zoapp-core": "0.3.0"
+    "zoapp-core": "^0.10.0"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.0",
     "babel-eslint": "^8.0.3",
+    "babel-jest": "^23.0.0-alpha.0",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "babel-preset-env": "^1.6.1",
-    "babel-preset-es2016": "^6.24.1",
-    "chai": "^4.1.2",
     "eslint": "^4.13.1",
     "eslint-config-airbnb-base": "12.1.0",
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-import-resolver-jest": "^2.1.0",
     "eslint-plugin-import": "2.8.0",
-    "mocha": "^4.0.1",
-    "nodemon": "^1.13.1"
+    "eslint-plugin-jest": "^21.15.0",
+    "eslint-plugin-prettier": "^2.6.0",
+    "jest": "^23.0.0-alpha.0",
+    "nodemon": "^1.13.1",
+    "prettier": "^1.11.1",
+    "supertest": "^3.0.0"
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "^zoauth/(.*)$": "<rootDir>/src/$1"
+    },
+    "setupTestFrameworkScriptFile": "<rootDir>/tests/setupTests.js"
   }
 }

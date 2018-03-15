@@ -8,16 +8,23 @@ import { Router } from "express";
 import RouteContext from "./routeContext";
 
 const send = (res, payload, status = 200, cors = "*") => {
-  const json = JSON.stringify(payload, (key, value) => {
-    if (!value) {
-      return undefined;
-    }
-    return value;
-  }, 0);
+  const json = JSON.stringify(
+    payload,
+    (key, value) => {
+      if (!value) {
+        return undefined;
+      }
+      return value;
+    },
+    0,
+  );
 
   res.charset = "utf-8";
   res.set("Content-Type", "application/json");
-  res.set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, access_token, client_id, client_secret");
+  res.set(
+    "Access-Control-Allow-Headers",
+    "X-Requested-With, Content-Type, access_token, client_id, client_secret",
+  );
   res.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.set("Access-Control-Allow-Origin", cors || "*");
   res.status(status);
@@ -73,7 +80,11 @@ class ZOAuthRoute {
           // TODO call logging
         } catch (error) {
           // TODO error logging
-          payload = { error: error.message, stack: error.stack, code: error.code };
+          payload = {
+            error: error.message,
+            stack: error.stack,
+            code: error.code,
+          };
           status = 500;
         }
         send(res, payload, status, res.locals.access.cors);
@@ -100,33 +111,35 @@ export default class ZOAuthRouter {
     const appCredentials = getAppCredentialsFromRequest(req);
     const { method } = req;
     const routeName = req.route.path;
-    this.authServer.grantAccess(routeName, method, token, appCredentials).then((access) => {
-      let n = false;
-      let context = null;
-      let { result } = access;
-      if (!result.error) {
-        context = new RouteContext(req, res);
-        n = true;
-        if (callback) {
-          result = callback(context);
-          if (result.error) {
-            n = false;
-          } else {
-            context.access = access.result;
+    this.authServer
+      .grantAccess(routeName, method, token, appCredentials)
+      .then((access) => {
+        let n = false;
+        let context = null;
+        let { result } = access;
+        if (!result.error) {
+          context = new RouteContext(req, res);
+          n = true;
+          if (callback) {
+            result = callback(context);
+            if (result.error) {
+              n = false;
+            } else {
+              context.access = access.result;
+            }
           }
         }
-      }
 
-      const status = n ? 200 : 401;
-      if (n) {
-        res.locals.access = access.result;
-        res.locals.context = context;
-        next();
-      } else {
-        send(res, result, status, access.cors);
-        next("route");
-      }
-    });
+        const status = n ? 200 : 401;
+        if (n) {
+          res.locals.access = access.result;
+          res.locals.context = context;
+          next();
+        } else {
+          send(res, result, status, access.cors);
+          next("route");
+        }
+      });
   }
 
   createRoute(path = null, authCallback = null, description = null) {

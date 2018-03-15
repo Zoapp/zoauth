@@ -22,9 +22,7 @@ export class ZOAuthServer {
     this.permissionRoutes = [];
   }
 
-  static errorMessages() {
-
-  }
+  static errorMessages() {}
 
   async start() {
     await this.model.open();
@@ -63,7 +61,12 @@ export class ZOAuthServer {
     return route;
   }
 
-  async grantAccess(routeName, method = "GET", accessToken = null, appCredentials = null) {
+  async grantAccess(
+    routeName,
+    method = "GET",
+    accessToken = null,
+    appCredentials = null,
+  ) {
     const response = {};
     const route = this.findRoute(routeName, method);
     let access = null;
@@ -77,10 +80,18 @@ export class ZOAuthServer {
           if (route.isScopeValid(access.scope)) {
             /* eslint-disable camelcase */
             const {
-              access_token, client_id, expires_in, scope, user_id,
+              access_token,
+              client_id,
+              expires_in,
+              scope,
+              user_id,
             } = access;
             response.result = {
-              access_token, client_id, expires_in, scope, user_id,
+              access_token,
+              client_id,
+              expires_in,
+              scope,
+              user_id,
             };
             /* eslint-enable camelcase */
           } else {
@@ -94,9 +105,14 @@ export class ZOAuthServer {
       }
     } else if (route && route.isOpen()) {
       response.result = { access: "open" };
-    } else if (route && route.isScopeValid("application") && (await this.validateApplicationCredentials(appCredentials))) {
+    } else if (
+      route &&
+      route.isScopeValid("application") &&
+      (await this.validateApplicationCredentials(appCredentials))
+    ) {
       response.result = {
-        client_id: appCredentials.id, scope: "application",
+        client_id: appCredentials.id,
+        scope: "application",
       };
     } else {
       response.result = { error: "No permission route" };
@@ -187,7 +203,12 @@ export class ZOAuthServer {
     return response;
   }
 
-  static validateCredentialsValue(username, email, password, policies = { userNeedEmail: true }) {
+  static validateCredentialsValue(
+    username,
+    email,
+    password,
+    policies = { userNeedEmail: true },
+  ) {
     // TODO regex username validation
     let ret = true;
     if (StringTools.stringIsEmpty(username) || username.length < 1) {
@@ -196,7 +217,7 @@ export class ZOAuthServer {
     if (StringTools.stringIsEmpty(password) || password.length < 4) {
       ret = false;
     }
-    if (policies.userNeedEmail && (!StringTools.isEmail(email))) {
+    if (policies.userNeedEmail && !StringTools.isEmail(email)) {
       ret = false;
     }
     return ret;
@@ -206,16 +227,14 @@ export class ZOAuthServer {
    * Register a ResourceOwner User
    */
   async anonymousAccess(params) {
-    const {
-      client_id: clientId, anonymous_secret: anonymousSecret,
-    } = params;
+    const { client_id: clientId, anonymous_secret: anonymousSecret } = params;
     let app = null;
     let response = null;
     let username = null;
     let userId = null;
     if (clientId) {
       app = await this.model.getApplication(clientId);
-      const policies = (app && app.policies) || { };
+      const policies = (app && app.policies) || {};
       if (policies.authorizeAnonymous) {
         let p = { client_id: clientId, anonymous_secret: anonymousSecret };
         response = await this.registerUser(p);
@@ -256,7 +275,11 @@ export class ZOAuthServer {
    */
   async registerUser(params) {
     const {
-      client_id: clientId, username, email, password, ...extras
+      client_id: clientId,
+      username,
+      email,
+      password,
+      ...extras
     } = params;
     let app = null;
     if (clientId) {
@@ -402,10 +425,7 @@ export class ZOAuthServer {
       user = await this.model.validateCredentials(username, password);
       if (user) {
         // validate authentication
-        authentication = await this.model.getAuthentication(
-          clientId,
-          user.id,
-        );
+        authentication = await this.model.getAuthentication(clientId, user.id);
         if (!authentication) {
           response.result = { error: "Not authentified" };
         }
@@ -459,7 +479,9 @@ export class ZOAuthServer {
   }
 
   async getAuthsWithScope(scope, clientId) {
-    return this.model.queryAuthentications(`scope=${scope} AND client_id=${clientId}`);
+    return this.model.queryAuthentications(
+      `scope=${scope} AND client_id=${clientId}`,
+    );
   }
 
   async getApplication(id) {
