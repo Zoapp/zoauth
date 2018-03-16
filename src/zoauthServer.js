@@ -10,7 +10,6 @@ import Route from "./model/route";
 
 const GRANT_TYPE_PASSWORD = "password";
 const GRANT_TYPE_REFRESH_TOKEN = "refresh_token";
-const GRANT_TYPE_CLIENT_CREDENTIALS = "client_credentials";
 
 export class ZOAuthServer {
   /* static ErrorsMessages = {
@@ -422,8 +421,6 @@ export class ZOAuthServer {
       response = await this.requestGrantTypePassword(clientId, username, password);
     } else if (grantType === GRANT_TYPE_REFRESH_TOKEN) {
       response = await this.requestGrantTypeRefreshToken(clientId, refreshToken);
-    } else if (grantType === GRANT_TYPE_CLIENT_CREDENTIALS) {
-      response = await this.requestGrantTypeClientCredentials(clientId);
     } else {
       response = this.createResultResponse({ error: `Unknown grant type: ${grantType}` });
     }
@@ -484,22 +481,26 @@ export class ZOAuthServer {
    *
    * Refresh Token Grant require : client_id, client_secret, refresh_token
    */
-  async requestGrantTypeRefreshToken(clientId, username, password) {
-    return this.createResultResponse({ error: "Function Empty" });
-  }
-
-  /* eslint-disable no-unused-vars */
-  /**
-   * requestGrantTypeRefreshClientCredential() used in requestAccessToken()
-   * for GrantType Client Credential
-   *
-   * The Client Credentials grant type is used when the client is
-   * requesting access to protected resources under its control
-   *
-   * Refresh Token Grant require : client_id, client_secret
-   */
-  async requestGrantTypeClientCredentials(clientId, clientSecret) {
-    return this.createResultResponse({ error: "Function Empty" });
+  async requestGrantTypeRefreshToken(clientId, refreshToken) {
+    let response = {};
+    // no need to validate user we have refreshToken
+    if (refreshToken) {
+      // generate accessToken, scope is stock in refresh
+      const session = await this.model.getAccessToken(
+        clientId,
+        refreshToken,
+      );
+      response = this.createResultResponse({
+        access_token: session.access_token,
+        expires_in: session.expires_in,
+        refresh_token: session.refresh_token,
+        scope: session.scope,
+      });
+      // TODO extras, redirectUri
+    } else {
+      response = this.createResultResponse({ error: "Can't use GRANT_TYPE_REFRESH_TOKEN without refresh_token" });
+    }
+    return response;
   }
 
   /* eslint-disable no-unused-vars */

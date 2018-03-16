@@ -9,7 +9,6 @@ import descriptor from "./descriptor";
 
 const GRANT_TYPE_PASSWORD = "password";
 const GRANT_TYPE_REFRESH_TOKEN = "refresh_token";
-const GRANT_TYPE_CLIENT_CREDENTIALS = "client_credentials";
 
 export class ZOAuthModel {
   constructor(config = {}, database = null) {
@@ -318,12 +317,13 @@ export class ZOAuthModel {
   ) {
     let actualSession = null;
     let refreshToken = null;
-    if (clientId && userId) {
-      const time = Date.now();
-      let id = `${clientId}-${userId}`;
-      actualSession = await sessions.getItem(id);
-      if (!actualSession) {
-        if (grantType === GRANT_TYPE_PASSWORD) {
+    const time = Date.now();
+    if (grantType === GRANT_TYPE_PASSWORD) {
+      // GRANT_TYPE_PASSWORD we can get session by his ID
+      if (clientId && userId) {
+        let id = `${clientId}-${userId}`;
+        actualSession = await sessions.getItem(id);
+        if (!actualSession) {
           refreshToken = await this.getRefreshToken();
           actualSession = {
             access_token: this.generateAccessToken(),
@@ -338,43 +338,40 @@ export class ZOAuthModel {
             refresh_expires_in: refreshToken.refresh_expires_in,
             refresh_created: refreshToken.refresh_created,
           };
-        } else if (grantType === GRANT_TYPE_CLIENT_CREDENTIALS) {
-          actualSession = {
-            access_token: this.generateAccessToken(),
-            expires_in: expiration,
-            scope,
-            client_id: clientId,
-            user_id: userId,
-            id,
-            access_created: time,
-            created: time,
-          };
+          id = null;
+        } else {
+          actualSession.last = time;
+          // TODO handle token expiration
+          if (scope) {
+            actualSession.scope = scope;
+          }
         }
-        id = null;
+        await sessions.setItem(id, actualSession);
+        // this.database.flush();
       } else {
-        if (grantType === GRANT_TYPE_REFRESH_TOKEN) {
-          refreshToken = await this.getRefreshToken();
-          actualSession = {
-            access_token: this.generateAccessToken(),
-            expires_in: expiration,
-            scope,
-            client_id: clientId,
-            user_id: userId,
-            id,
-            access_created: time,
-            refresh_token: refreshToken.refresh_token,
-            refresh_expires_in: refreshToken.refresh_expires_in,
-            refresh_created: refreshToken.refresh_created,
-          };
-        }
-        actualSession.last = time;
-        // TODO handle token expiration
-        if (scope) {
-          actualSession.scope = scope;
-        }
+        // Error Response
       }
-      await sessions.setItem(id, actualSession);
+    } else if (grantType === GRANT_TYPE_REFRESH_TOKEN) {
+      // We can get session with the refresh_token
+      let updatedSession = {};
+      actualSession = await sessions.getItem(refreshToken);
+      if (actualSession) {
+        refreshToken = await this.getRefreshToken();
+        updatedSession = {
+          access_token: this.generateAccessToken(),
+          expires_in: expiration,
+          access_created: time,
+          refresh_token: refreshToken.refresh_token,
+          refresh_expires_in: refreshToken.refresh_expires_in,
+          refresh_created: refreshToken.refresh_created,
+        };
+        await sessions.setItem(actualSession.id, updatedSession);
       // this.database.flush();
+      } else {
+        // Error Response
+      }
+    } else {
+      actualSession = { error: "Request Failed" };
     }
     return actualSession;
   }
