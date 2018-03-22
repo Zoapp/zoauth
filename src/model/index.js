@@ -366,7 +366,7 @@ export class ZOAuthModel {
           refresh_created: refreshToken.refresh_created,
         };
         await sessions.setItem(actualSession.id, updatedSession);
-      // this.database.flush();
+        // this.database.flush();
       } else {
         // Error Response
       }
@@ -391,7 +391,7 @@ export class ZOAuthModel {
     if (accessToken) {
       await sessions.nextItem((a) => {
         if (a.access_token === accessToken) {
-          const expirationDate = a.access_created + (a.expires_in * 1000);
+          const expirationDate = a.access_created + a.expires_in * 1000;
           if (expirationDate > new Date().getTime()) {
             access = a;
             return true;
@@ -408,7 +408,7 @@ export class ZOAuthModel {
     if (refreshToken) {
       await sessions.nextItem((a) => {
         if (a.refresh_token === refreshToken) {
-          const expirationDate = a.created + (a.refresh_expires_in * 1000);
+          const expirationDate = a.created + a.refresh_expires_in * 1000;
           if (expirationDate > new Date().getTime()) {
             refresh = a;
             return true;

@@ -68,7 +68,12 @@ export class ZOAuthServer {
     return route;
   }
 
-  async grantAccess(routeName, method = "GET", accessToken = null, appCredentials = null) {
+  async grantAccess(
+    routeName,
+    method = "GET",
+    accessToken = null,
+    appCredentials = null,
+  ) {
     const route = this.findRoute(routeName, method);
     let response = {};
     let access = null;
@@ -85,6 +90,7 @@ export class ZOAuthServer {
               access_token,
               client_id,
               expires_in,
+              refresh_token,
               scope,
               user_id,
             } = access;
@@ -92,27 +98,43 @@ export class ZOAuthServer {
               access_token,
               client_id,
               expires_in,
+              refresh_token,
               scope,
               user_id,
             };
             /* eslint-enable camelcase */
           } else {
-            response = this.createResultResponse({ error: "Not allowed" });
+            response = this.createResultResponse({
+              error: "Not allowed",
+            });
           }
         } else {
-          response = this.createResultResponse({ error: "Not valid user account" });
+          response = this.createResultResponse({
+            error: "Not valid user account",
+          });
         }
       } else {
-        response = this.createResultResponse({ error: "Not valid access token" });
+        response = this.createResultResponse({
+          error: "Not valid access token",
+        });
       }
     } else if (route && route.isOpen()) {
-      response = this.createResultResponse({ access: "open" });
-    } else if (route && route.isScopeValid("application") && (await this.validateApplicationCredentials(appCredentials))) {
       response = this.createResultResponse({
-        client_id: appCredentials.id, scope: "application",
+        access: "open",
+      });
+    } else if (
+      route &&
+      route.isScopeValid("application") &&
+      (await this.validateApplicationCredentials(appCredentials))
+    ) {
+      response = this.createResultResponse({
+        client_id: appCredentials.id,
+        scope: "application",
       });
     } else {
-      response = this.createResultResponse({ error: "No permission route" });
+      response = this.createResultResponse({
+        error: "No permission route",
+      });
     }
     return response;
   }
@@ -179,21 +201,32 @@ export class ZOAuthServer {
       } else {
         // logger.info("app exist !");
         app = null;
-        response = this.createResultResponse({ error: "Can't register this application name" });
+        response = this.createResultResponse({
+          error: "Can't register this application name",
+        });
       }
     } else if (wrongEmail) {
-      response = this.createResultResponse({ error: "Wrong email sent" });
+      response = this.createResultResponse({
+        error: "Wrong email sent",
+      });
     } else {
-      response = this.createResultResponse({ error: "Wrong name sent" });
+      response = this.createResultResponse({
+        error: "Wrong name sent",
+      });
     }
 
     if (app) {
       app = await this.model.setApplication(app);
       // logger.info("app=", app);
       if (app) {
-        response = this.createResultResponse({ client_id: app.id, client_secret: app.secret });
+        response = this.createResultResponse({
+          client_id: app.id,
+          client_secret: app.secret,
+        });
       } else {
-        response = this.createResultResponse({ error: "Can't save application" });
+        response = this.createResultResponse({
+          error: "Can't save application",
+        });
       }
     }
     // TODO authorizedIps CORS params
@@ -309,7 +342,9 @@ export class ZOAuthServer {
           anonymous_secret: extras.anonymous_secret,
         };
       } else {
-        response = this.createResultResponse({ error: "Wrong parameters sent" });
+        response = this.createResultResponse({
+          error: "Wrong parameters sent",
+        });
       }
     } else if (
       ZOAuthServer.validateCredentialsValue(username, email, password, policies)
@@ -326,10 +361,14 @@ export class ZOAuthServer {
         }
       } else {
         user = null;
-        response = this.createResultResponse({ error: `User exist: ${username}` });
+        response = this.createResultResponse({
+          error: `User exist: ${username}`,
+        });
       }
     } else {
-      response = this.createResultResponse({ error: "Wrong parameters sent" });
+      response = this.createResultResponse({
+        error: "Wrong parameters sent",
+      });
     }
     if (user) {
       user = await this.model.setUser(user);
@@ -385,18 +424,30 @@ export class ZOAuthServer {
       // TODO save extra params
       storedAuth = await this.model.setAuthentication(authentication);
       if (storedAuth) {
-        response = this.createResultResponse({ redirect_uri: authentication.redirect_uri });
+        response = this.createResultResponse({
+          redirect_uri: authentication.redirect_uri,
+        });
       } else {
-        response = this.createResultResponse({ error: "Can't authenticate" });
+        response = this.createResultResponse({
+          error: "Can't authenticate",
+        });
       }
     } else if (!app) {
-      response = this.createResultResponse({ error: "No valid client_id" });
+      response = this.createResultResponse({
+        error: "No valid client_id",
+      });
     } else if (user == null && userId) {
-      response = this.createResultResponse({ error: "No valid user_id" });
+      response = this.createResultResponse({
+        error: "No valid user_id",
+      });
     } else if (user == null && username && password) {
-      response = this.createResultResponse({ error: "Wrong credentials" });
+      response = this.createResultResponse({
+        error: "Wrong credentials",
+      });
     } else {
-      response = this.createResultResponse({ error: "Not valid" });
+      response = this.createResultResponse({
+        error: "Not valid",
+      });
     }
     return response;
   }
@@ -418,11 +469,20 @@ export class ZOAuthServer {
     const refreshToken = null;
     let response = {};
     if (grantType === GRANT_TYPE_PASSWORD) {
-      response = await this.requestGrantTypePassword(clientId, username, password);
+      response = await this.requestGrantTypePassword(
+        clientId,
+        username,
+        password,
+      );
     } else if (grantType === GRANT_TYPE_REFRESH_TOKEN) {
-      response = await this.requestGrantTypeRefreshToken(clientId, refreshToken);
+      response = await this.requestGrantTypeRefreshToken(
+        clientId,
+        refreshToken,
+      );
     } else {
-      response = this.createResultResponse({ error: `Unknown grant type: ${grantType}` });
+      response = this.createResultResponse({
+        error: `Unknown grant type: ${grantType}`,
+      });
     }
     return response;
   }
@@ -443,10 +503,7 @@ export class ZOAuthServer {
     user = await this.model.validateCredentials(username, password);
     if (user) {
       // validate authentication
-      authentication = await this.model.getAuthentication(
-        clientId,
-        user.id,
-      );
+      authentication = await this.model.getAuthentication(clientId, user.id);
       if (!authentication) {
         response = this.createResultResponse({ error: "Not authentified" });
       }
@@ -457,11 +514,7 @@ export class ZOAuthServer {
     if (user && authentication) {
       // generate accessToken
       const { scope } = authentication;
-      const session = await this.model.getAccessToken(
-        clientId,
-        user.id,
-        scope,
-      );
+      const session = await this.model.getAccessToken(clientId, user.id, scope);
       response.result = {
         access_token: session.access_token,
         expires_in: session.expires_in,
@@ -486,10 +539,7 @@ export class ZOAuthServer {
     // no need to validate user we have refreshToken
     if (refreshToken) {
       // generate accessToken, scope is stock in refresh
-      const session = await this.model.getAccessToken(
-        clientId,
-        refreshToken,
-      );
+      const session = await this.model.getAccessToken(clientId, refreshToken);
       response = this.createResultResponse({
         access_token: session.access_token,
         expires_in: session.expires_in,
@@ -498,7 +548,9 @@ export class ZOAuthServer {
       });
       // TODO extras, redirectUri
     } else {
-      response = this.createResultResponse({ error: "Can't use GRANT_TYPE_REFRESH_TOKEN without refresh_token" });
+      response = this.createResultResponse({
+        error: "Can't use GRANT_TYPE_REFRESH_TOKEN without refresh_token",
+      });
     }
     return response;
   }

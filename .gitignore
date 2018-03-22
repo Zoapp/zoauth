@@ -4,3 +4,4 @@ lib
 *.DS_Store
 config
 yarn.lock
+yarn-error.log

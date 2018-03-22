@@ -5,16 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 import zoauthServer from "zoauth/zoauthServer";
-
-const mysqlConfig = {
-  database: {
-    datatype: "mysql",
-    host: "localhost",
-    name: "auth_test",
-    user: "root",
-  },
-  endpoint: "/auth",
-};
+import { mysqlConfig } from "./config";
 
 const describeParams = (name, params, func) => {
   params.forEach((p) => {
@@ -241,6 +232,7 @@ describeParams(
         expect(Object.keys(result)).toEqual([
           "access_token",
           "expires_in",
+          "refresh_token",
           "scope",
           "username",
           "user_id",
@@ -424,6 +416,7 @@ describeParams(
         expect(Object.keys(result)).toEqual([
           "access_token",
           "expires_in",
+          "refresh_token",
           "scope",
         ]);
         expect(result.access_token).toHaveLength(48);
