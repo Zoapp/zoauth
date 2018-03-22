@@ -459,29 +459,35 @@ export class ZOAuthServer {
    */
   async requestAccessToken(params) {
     const {
+      grant_type: grantType,
+      refresh_token: refreshToken,
+      client_id: clientId,
       username,
       password,
-      grant_type: grantType,
       /* redirect_uri: redirectUri, */
-      client_id: clientId,
       /* ...extras */
     } = params;
-    const refreshToken = null;
     let response = {};
-    if (grantType === GRANT_TYPE_PASSWORD) {
-      response = await this.requestGrantTypePassword(
-        clientId,
-        username,
-        password,
-      );
-    } else if (grantType === GRANT_TYPE_REFRESH_TOKEN) {
-      response = await this.requestGrantTypeRefreshToken(
-        clientId,
-        refreshToken,
-      );
+    if (clientId) {
+      if (grantType === GRANT_TYPE_PASSWORD) {
+        response = await this.requestGrantTypePassword(
+          clientId,
+          username,
+          password,
+        );
+      } else if (grantType === GRANT_TYPE_REFRESH_TOKEN) {
+        response = await this.requestGrantTypeRefreshToken(
+          clientId,
+          refreshToken,
+        );
+      } else {
+        response = this.createResultResponse({
+          error: `Unknown grant type: ${grantType}`,
+        });
+      }
     } else {
       response = this.createResultResponse({
-        error: `Unknown grant type: ${grantType}`,
+        error: "Require client_id",
       });
     }
     return response;
@@ -514,7 +520,13 @@ export class ZOAuthServer {
     if (user && authentication) {
       // generate accessToken
       const { scope } = authentication;
-      const session = await this.model.getAccessToken(clientId, user.id, scope);
+      const session = await this.model.getAccessToken(
+        GRANT_TYPE_PASSWORD,
+        null,
+        clientId,
+        user.id,
+        scope,
+      );
       response.result = {
         access_token: session.access_token,
         expires_in: session.expires_in,
@@ -539,17 +551,27 @@ export class ZOAuthServer {
     // no need to validate user we have refreshToken
     if (refreshToken) {
       // generate accessToken, scope is stock in refresh
-      const session = await this.model.getAccessToken(clientId, refreshToken);
-      response = this.createResultResponse({
-        access_token: session.access_token,
-        expires_in: session.expires_in,
-        refresh_token: session.refresh_token,
-        scope: session.scope,
-      });
+      const session = await this.model.getAccessToken(
+        GRANT_TYPE_REFRESH_TOKEN,
+        refreshToken,
+        clientId,
+      );
+      if (session.error === undefined) {
+        response = this.createResultResponse({
+          access_token: session.access_token,
+          expires_in: session.expires_in,
+          refresh_token: session.refresh_token,
+          scope: session.scope,
+        });
+      } else {
+        response = this.createResultResponse({
+          error: session.error,
+        });
+      }
       // TODO extras, redirectUri
     } else {
       response = this.createResultResponse({
-        error: "Can't use GRANT_TYPE_REFRESH_TOKEN without refresh_token",
+        error: "Use GRANT_TYPE_REFRESH_TOKEN without refresh_token",
       });
     }
     return response;

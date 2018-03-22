@@ -308,27 +308,27 @@ export class ZOAuthModel {
   }
 
   async getAccessToken(
+    grantType,
+    refreshToken,
     clientId,
     userId,
     scope,
-    grantType = GRANT_TYPE_PASSWORD, // by defaut, other grant type are not supported for moment
     expiration = this.tokenExpiration,
     sessions = this.getSessions(),
   ) {
     let actualSession = null;
-    let refreshToken = null;
     const time = Date.now();
     if (grantType === GRANT_TYPE_PASSWORD) {
       if (clientId && userId) {
         let id = `${clientId}-${userId}`;
         actualSession = await sessions.getItem(id);
         if (!actualSession) {
-          refreshToken = await this.getRefreshToken();
+          const newRefreshToken = await this.getRefreshToken();
           actualSession = await this.createSession(id, scope, {
             expiration,
             clientId,
             userId,
-            refreshToken,
+            newRefreshToken,
             time,
           });
           id = null;
@@ -344,16 +344,20 @@ export class ZOAuthModel {
         actualSession = { error: "Require credentials" };
       }
     } else if (grantType === GRANT_TYPE_REFRESH_TOKEN) {
-      actualSession = await sessions.getItem(refreshToken);
-      if (actualSession) {
-        const sessionId = actualSession.id;
-        refreshToken = await this.getRefreshToken();
-        actualSession = await this.refreshSession({
-          expiration,
-          refreshToken,
-          time,
-        });
-        await sessions.setItem(sessionId, actualSession);
+      if (refreshToken) {
+        actualSession = await sessions.getItem(`refresh_token=${refreshToken}`);
+        if (actualSession !== null) {
+          const sessionId = actualSession.id;
+          const newRefreshToken = await this.getRefreshToken();
+          actualSession = await this.refreshSession({
+            expiration,
+            newRefreshToken,
+            time,
+          });
+          await sessions.setItem(sessionId, actualSession);
+        } else {
+          actualSession = { error: "Wrong refresh_token" };
+        }
       } else {
         actualSession = { error: "Require refresh_token" };
       }
@@ -374,9 +378,9 @@ export class ZOAuthModel {
       id,
       access_created: params.time,
       created: params.time,
-      refresh_token: params.refreshToken.refresh_token,
-      refresh_expires_in: params.refreshToken.refresh_expires_in,
-      refresh_created: params.refreshToken.refresh_created,
+      refresh_token: params.newRefreshToken.refresh_token,
+      refresh_expires_in: params.newRefreshToken.refresh_expires_in,
+      refresh_created: params.newRefreshToken.refresh_created,
     };
     return session;
   }
@@ -387,9 +391,9 @@ export class ZOAuthModel {
       access_token: this.generateAccessToken(),
       expires_in: param.expiration,
       access_created: param.time,
-      refresh_token: param.refreshToken.refresh_token,
-      refresh_expires_in: param.refreshToken.refresh_expires_in,
-      refresh_created: param.refreshToken.refresh_created,
+      refresh_token: param.newRefreshToken.refresh_token,
+      refresh_expires_in: param.newRefreshToken.refresh_expires_in,
+      refresh_created: param.newRefreshToken.refresh_created,
     };
     return session;
   }
