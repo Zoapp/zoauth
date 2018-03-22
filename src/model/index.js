@@ -319,25 +319,18 @@ export class ZOAuthModel {
     let refreshToken = null;
     const time = Date.now();
     if (grantType === GRANT_TYPE_PASSWORD) {
-      // GRANT_TYPE_PASSWORD we can get session by his ID
       if (clientId && userId) {
         let id = `${clientId}-${userId}`;
         actualSession = await sessions.getItem(id);
         if (!actualSession) {
           refreshToken = await this.getRefreshToken();
-          actualSession = {
-            access_token: this.generateAccessToken(),
-            expires_in: expiration,
-            scope,
-            client_id: clientId,
-            user_id: userId,
-            id,
-            access_created: time,
-            created: time,
-            refresh_token: refreshToken.refresh_token,
-            refresh_expires_in: refreshToken.refresh_expires_in,
-            refresh_created: refreshToken.refresh_created,
-          };
+          actualSession = await this.createSession(id, scope, {
+            expiration,
+            clientId,
+            userId,
+            refreshToken,
+            time,
+          });
           id = null;
         } else {
           actualSession.last = time;
@@ -347,33 +340,58 @@ export class ZOAuthModel {
           }
         }
         await sessions.setItem(id, actualSession);
-        // this.database.flush();
       } else {
-        // Error Response
+        actualSession = { error: "Require credentials" };
       }
     } else if (grantType === GRANT_TYPE_REFRESH_TOKEN) {
-      // We can get session with the refresh_token
-      let updatedSession = {};
       actualSession = await sessions.getItem(refreshToken);
       if (actualSession) {
+        const sessionId = actualSession.id;
         refreshToken = await this.getRefreshToken();
-        updatedSession = {
-          access_token: this.generateAccessToken(),
-          expires_in: expiration,
-          access_created: time,
-          refresh_token: refreshToken.refresh_token,
-          refresh_expires_in: refreshToken.refresh_expires_in,
-          refresh_created: refreshToken.refresh_created,
-        };
-        await sessions.setItem(actualSession.id, updatedSession);
-        // this.database.flush();
+        actualSession = await this.refreshSession({
+          expiration,
+          refreshToken,
+          time,
+        });
+        await sessions.setItem(sessionId, actualSession);
       } else {
-        // Error Response
+        actualSession = { error: "Require refresh_token" };
       }
     } else {
-      actualSession = { error: "Request Failed" };
+      actualSession = { error: "Request Failed, unknown grant_type" };
     }
     return actualSession;
+  }
+
+  async createSession(id, scope, params) {
+    let session = {};
+    session = {
+      access_token: this.generateAccessToken(),
+      expires_in: params.expiration,
+      scope,
+      client_id: params.clientId,
+      user_id: params.userId,
+      id,
+      access_created: params.time,
+      created: params.time,
+      refresh_token: params.refreshToken.refresh_token,
+      refresh_expires_in: params.refreshToken.refresh_expires_in,
+      refresh_created: params.refreshToken.refresh_created,
+    };
+    return session;
+  }
+
+  async refreshSession(param) {
+    let session = {};
+    session = {
+      access_token: this.generateAccessToken(),
+      expires_in: param.expiration,
+      access_created: param.time,
+      refresh_token: param.refreshToken.refresh_token,
+      refresh_expires_in: param.refreshToken.refresh_expires_in,
+      refresh_created: param.refreshToken.refresh_created,
+    };
+    return session;
   }
 
   async getRefreshToken(expiration = this.refreshTokenExpiration) {
@@ -391,7 +409,8 @@ export class ZOAuthModel {
     if (accessToken) {
       await sessions.nextItem((a) => {
         if (a.access_token === accessToken) {
-          const expirationDate = a.access_created + a.expires_in * 1000;
+          const expireTime = a.expires_in * 1000;
+          const expirationDate = a.access_created + expireTime;
           if (expirationDate > new Date().getTime()) {
             access = a;
             return true;
