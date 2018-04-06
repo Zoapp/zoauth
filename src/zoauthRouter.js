@@ -69,8 +69,8 @@ class ZOAuthRoute {
     // TODO API call limits
     root.methods[method].call(
       p,
-      (req, res, next) => {
-        root.authMiddleware(req, res, next, authCb);
+      async (req, res, next) => {
+        await root.authMiddleware(req, res, next, authCb);
       },
       async (req, res) => {
         let payload = null;
@@ -106,40 +106,46 @@ export default class ZOAuthRouter {
     };
   }
 
-  authMiddleware(req, res, next, callback = null) {
+  async authMiddleware(req, res, next, callback = null) {
     const token = getAccessTokenFromRequest(req);
     const appCredentials = getAppCredentialsFromRequest(req);
     const { method } = req;
     const routeName = req.route.path;
-    this.authServer
-      .grantAccess(routeName, method, token, appCredentials)
-      .then((access) => {
-        let n = false;
-        let context = null;
-        let { result } = access;
-        if (!result.error) {
-          context = new RouteContext(req, res);
-          n = true;
-          if (callback) {
-            result = callback(context);
-            if (result.error) {
-              n = false;
-            } else {
-              context.access = access.result;
-            }
+    try {
+      const access = await this.authServer.grantAccess(
+        routeName,
+        method,
+        token,
+        appCredentials,
+      );
+      let n = false;
+      let context = null;
+      let { result } = access;
+      if (!result.error) {
+        context = new RouteContext(req, res);
+        n = true;
+        if (callback) {
+          result = callback(context);
+          if (result.error) {
+            n = false;
+          } else {
+            context.access = access.result;
           }
         }
+      }
 
-        const status = n ? 200 : 401;
-        if (n) {
-          res.locals.access = access.result;
-          res.locals.context = context;
-          next();
-        } else {
-          send(res, result, status, access.cors);
-          next("route");
-        }
-      });
+      const status = n ? 200 : 401;
+      if (n) {
+        res.locals.access = access.result;
+        res.locals.context = context;
+        next();
+      } else {
+        send(res, result, status, access.cors);
+        next("route");
+      }
+    } catch (err) {
+      logger.info("error", err);
+    }
   }
 
   createRoute(path = null, authCallback = null, description = null) {
