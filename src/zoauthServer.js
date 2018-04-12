@@ -7,10 +7,7 @@
 import { StringTools, Password } from "zoapp-core";
 import createModel from "./model";
 import Route from "./model/route";
-import { constants } from "./constants";
-
-const GRANT_TYPE_PASSWORD = constants.grant_type.password;
-const GRANT_TYPE_REFRESH_TOKEN = constants.grant_type.refresh_token;
+import { GRANT_TYPE_PASSWORD, GRANT_TYPE_REFRESH_TOKEN } from "./constants";
 
 export class ZOAuthServer {
   /* static ErrorsMessages = {
