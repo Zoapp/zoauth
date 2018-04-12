@@ -6,9 +6,10 @@
  */
 import { StringTools, dbCreate } from "zoapp-core";
 import descriptor from "./descriptor";
+import { constants } from "../constants";
 
-const GRANT_TYPE_PASSWORD = "password";
-const GRANT_TYPE_REFRESH_TOKEN = "refresh_token";
+const GRANT_TYPE_PASSWORD = constants.grant_type.password;
+const GRANT_TYPE_REFRESH_TOKEN = constants.grant_type.refresh_token;
 
 export class ZOAuthModel {
   constructor(config = {}, database = null) {
