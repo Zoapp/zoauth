@@ -6,6 +6,7 @@
  */
 import { StringTools, dbCreate } from "zoapp-core";
 import descriptor from "./descriptor";
+import { GRANT_TYPE_PASSWORD, GRANT_TYPE_REFRESH_TOKEN } from "../constants";
 
 export class ZOAuthModel {
   constructor(config = {}, database = null) {
@@ -17,6 +18,7 @@ export class ZOAuthModel {
     }
     this.config = config;
     this.tokenExpiration = this.config.tokenExpiration || 3600;
+    this.refreshTokenExpiration = this.config.refreshTokenExpiration || 86400;
   }
 
   async open() {
@@ -41,6 +43,10 @@ export class ZOAuthModel {
 
   generateAccessToken() {
     return this.database.generateToken(48);
+  }
+
+  generateRefreshToken() {
+    return this.database.generateToken(32);
   }
 
   generateId() {
@@ -300,39 +306,104 @@ export class ZOAuthModel {
   }
 
   async getAccessToken(
+    grantType,
+    refreshToken,
     clientId,
     userId,
     scope,
     expiration = this.tokenExpiration,
     sessions = this.getSessions(),
   ) {
-    let accessToken = null;
-    if (clientId && userId) {
-      const time = Date.now();
-      let id = `${clientId}-${userId}`;
-      accessToken = await sessions.getItem(id);
-      if (!accessToken) {
-        accessToken = {
-          access_token: this.generateAccessToken(),
-          expires_in: expiration,
-          scope,
-          client_id: clientId,
-          user_id: userId,
-          id,
-          created: time,
-        };
-        id = null;
-      } else {
-        accessToken.last = time;
-        // TODO handle token expiration
-        if (scope) {
-          accessToken.scope = scope;
+    let actualSession = null;
+    const time = Date.now();
+    if (grantType === GRANT_TYPE_PASSWORD) {
+      if (clientId && userId) {
+        let id = `${clientId}-${userId}`;
+        actualSession = await sessions.getItem(id);
+        if (!actualSession) {
+          const newRefreshToken = await this.getRefreshToken();
+          actualSession = await this.createSession(id, scope, {
+            expiration,
+            clientId,
+            userId,
+            newRefreshToken,
+            time,
+          });
+          id = null;
+        } else {
+          actualSession.last = time;
+          // TODO handle token expiration
+          if (scope) {
+            actualSession.scope = scope;
+          }
         }
+        await sessions.setItem(id, actualSession);
+      } else {
+        actualSession = { error: "Require credentials" };
       }
-      await sessions.setItem(id, accessToken);
-      // this.database.flush();
+    } else if (grantType === GRANT_TYPE_REFRESH_TOKEN) {
+      if (refreshToken) {
+        actualSession = await sessions.getItem(`refresh_token=${refreshToken}`);
+        if (actualSession !== null) {
+          const sessionId = actualSession.id;
+          const newRefreshToken = await this.getRefreshToken();
+          actualSession = await this.refreshSession({
+            expiration,
+            newRefreshToken,
+            time,
+          });
+          await sessions.setItem(sessionId, actualSession);
+        } else {
+          actualSession = { error: "Wrong refresh_token" };
+        }
+      } else {
+        actualSession = { error: "Require refresh_token" };
+      }
+    } else {
+      actualSession = { error: "Request Failed, unknown grant_type" };
     }
-    return accessToken;
+    return actualSession;
+  }
+
+  async createSession(id, scope, params) {
+    let session = {};
+    session = {
+      access_token: this.generateAccessToken(),
+      expires_in: params.expiration,
+      scope,
+      client_id: params.clientId,
+      user_id: params.userId,
+      id,
+      access_created: params.time,
+      created: params.time,
+      refresh_token: params.newRefreshToken.refresh_token,
+      refresh_expires_in: params.newRefreshToken.refresh_expires_in,
+      refresh_created: params.newRefreshToken.refresh_created,
+    };
+    return session;
+  }
+
+  async refreshSession(param) {
+    let session = {};
+    session = {
+      access_token: this.generateAccessToken(),
+      expires_in: param.expiration,
+      access_created: param.time,
+      refresh_token: param.newRefreshToken.refresh_token,
+      refresh_expires_in: param.newRefreshToken.refresh_expires_in,
+      refresh_created: param.newRefreshToken.refresh_created,
+    };
+    return session;
+  }
+
+  async getRefreshToken(expiration = this.refreshTokenExpiration) {
+    const time = Date.now();
+    const refreshToken = {
+      refresh_token: this.generateRefreshToken(),
+      refresh_expires_in: expiration,
+      refresh_created: time,
+    };
+    return refreshToken;
   }
 
   async validateAccessToken(accessToken, sessions = this.getSessions()) {
@@ -340,13 +411,34 @@ export class ZOAuthModel {
     if (accessToken) {
       await sessions.nextItem((a) => {
         if (a.access_token === accessToken) {
-          access = a;
-          return true;
+          const expireTime = a.expires_in * 1000;
+          const expirationDate = a.access_created + expireTime;
+          if (expirationDate > new Date().getTime()) {
+            access = a;
+            return true;
+          }
         }
         return false;
       });
     }
     return access;
+  }
+
+  async validateRefreshToken(refreshToken, sessions = this.getSessions()) {
+    let refresh = null;
+    if (refreshToken) {
+      await sessions.nextItem((a) => {
+        if (a.refresh_token === refreshToken) {
+          const expirationDate = a.created + a.refresh_expires_in * 1000;
+          if (expirationDate > new Date().getTime()) {
+            refresh = a;
+            return true;
+          }
+        }
+        return false;
+      });
+    }
+    return refresh;
   }
 
   /* eslint-disable no-unused-vars */

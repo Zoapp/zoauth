@@ -7,6 +7,7 @@
 import { StringTools, Password } from "zoapp-core";
 import createModel from "./model";
 import Route from "./model/route";
+import { GRANT_TYPE_PASSWORD, GRANT_TYPE_REFRESH_TOKEN } from "./constants";
 
 export class ZOAuthServer {
   /* static ErrorsMessages = {
@@ -15,14 +16,18 @@ export class ZOAuthServer {
     WRONG_NAME: "Wrong name sent",
     CANT_SAVE_APP: "Can't save application",
   }; */
-
   constructor(config = {}, database = null) {
     this.config = { ...config };
     this.model = createModel(this.config.database, database);
     this.permissionRoutes = [];
   }
 
-  static errorMessages() {}
+  /* eslint-disable class-methods-use-this */
+  createResultResponse(message) {
+    return {
+      result: message,
+    };
+  }
 
   async start() {
     await this.model.open();
@@ -67,8 +72,8 @@ export class ZOAuthServer {
     accessToken = null,
     appCredentials = null,
   ) {
-    const response = {};
     const route = this.findRoute(routeName, method);
+    let response = {};
     let access = null;
     if (route && accessToken) {
       access = await this.model.validateAccessToken(accessToken);
@@ -83,6 +88,7 @@ export class ZOAuthServer {
               access_token,
               client_id,
               expires_in,
+              refresh_token,
               scope,
               user_id,
             } = access;
@@ -90,45 +96,56 @@ export class ZOAuthServer {
               access_token,
               client_id,
               expires_in,
+              refresh_token,
               scope,
               user_id,
             };
             /* eslint-enable camelcase */
           } else {
-            response.result = { error: "Not allowed" };
+            response = this.createResultResponse({
+              error: "Not allowed",
+            });
           }
         } else {
-          response.result = { error: "Not valid user account" };
+          response = this.createResultResponse({
+            error: "Not valid user account",
+          });
         }
       } else {
-        response.result = { error: "Not valid access token" };
+        response = this.createResultResponse({
+          error: "Not valid access token",
+        });
       }
     } else if (route && route.isOpen()) {
-      response.result = { access: "open" };
+      response = this.createResultResponse({
+        access: "open",
+      });
     } else if (
       route &&
       route.isScopeValid("application") &&
       (await this.validateApplicationCredentials(appCredentials))
     ) {
-      response.result = {
+      response = this.createResultResponse({
         client_id: appCredentials.id,
         scope: "application",
-      };
+      });
     } else {
-      response.result = { error: "No permission route" };
+      response = this.createResultResponse({
+        error: "No permission route",
+      });
     }
     return response;
   }
 
   static validatePassword(params) {
     const { password } = params;
-    const response = {};
     const strength = Password.strength(password);
+    let response = {};
     if (strength > 0) {
       const hash = Password.generateSaltHash(password);
       response.result = { hash, strength };
     } else {
-      response.result = { error: "Empty password" };
+      response = this.createResultResponse({ error: "Empty password" });
     }
     return response;
   }
@@ -164,7 +181,7 @@ export class ZOAuthServer {
       domains,
     } = params;
     // logger.info("registerApplication");
-    const response = {};
+    let response = {};
     let app = null;
     const wrongEmail = !StringTools.isEmail(email);
     if (ZOAuthServer.validateApplicationName(name) && !wrongEmail) {
@@ -182,21 +199,32 @@ export class ZOAuthServer {
       } else {
         // logger.info("app exist !");
         app = null;
-        response.result = { error: "Can't register this application name" };
+        response = this.createResultResponse({
+          error: "Can't register this application name",
+        });
       }
     } else if (wrongEmail) {
-      response.result = { error: "Wrong email sent" };
+      response = this.createResultResponse({
+        error: "Wrong email sent",
+      });
     } else {
-      response.result = { error: "Wrong name sent" };
+      response = this.createResultResponse({
+        error: "Wrong name sent",
+      });
     }
 
     if (app) {
       app = await this.model.setApplication(app);
       // logger.info("app=", app);
       if (app) {
-        response.result = { client_id: app.id, client_secret: app.secret };
+        response = this.createResultResponse({
+          client_id: app.id,
+          client_secret: app.secret,
+        });
       } else {
-        response.result = { error: "Can't save application" };
+        response = this.createResultResponse({
+          error: "Can't save application",
+        });
       }
     }
     // TODO authorizedIps CORS params
@@ -265,7 +293,7 @@ export class ZOAuthServer {
       }
     }
     if (!response) {
-      response = { error: "No client found" };
+      response = this.createResultResponse({ error: "No client found" });
     }
     return response;
   }
@@ -285,10 +313,10 @@ export class ZOAuthServer {
     if (clientId) {
       app = await this.model.getApplication(clientId);
     }
-    const response = {};
+    let response = {};
 
     if (!app) {
-      return { error: "No client found" };
+      return this.createResultResponse({ error: "No client found" });
     }
     let user = null;
     const policies = app.policies || { userNeedEmail: true }; // TODO remove this default policies
@@ -312,7 +340,9 @@ export class ZOAuthServer {
           anonymous_secret: extras.anonymous_secret,
         };
       } else {
-        response.result = { error: "Wrong parameters sent" };
+        response = this.createResultResponse({
+          error: "Wrong parameters sent",
+        });
       }
     } else if (
       ZOAuthServer.validateCredentialsValue(username, email, password, policies)
@@ -329,23 +359,27 @@ export class ZOAuthServer {
         }
       } else {
         user = null;
-        response.result = { error: `User exist: ${username}` };
+        response = this.createResultResponse({
+          error: `User exist: ${username}`,
+        });
       }
     } else {
-      response.result = { error: "Wrong parameters sent" };
+      response = this.createResultResponse({
+        error: "Wrong parameters sent",
+      });
     }
     if (user) {
       user = await this.model.setUser(user);
       if (user) {
-        response.result = {
+        response = this.createResultResponse({
           id: user.id,
           username: user.username,
-        };
+        });
         if (user.email) {
           response.result.email = user.email;
         }
       } else {
-        response.result = { error: "Can't save user" };
+        response = this.createResultResponse({ error: "Can't save user" });
       }
     }
     return response;
@@ -364,8 +398,8 @@ export class ZOAuthServer {
       redirect_uri: redirectUri,
       /* ...extras */
     } = params;
-    const response = {};
     const authentication = {};
+    let response = {};
     let app = null;
     let user = null;
     let storedAuth = null;
@@ -388,68 +422,155 @@ export class ZOAuthServer {
       // TODO save extra params
       storedAuth = await this.model.setAuthentication(authentication);
       if (storedAuth) {
-        response.result = { redirect_uri: authentication.redirect_uri };
+        response = this.createResultResponse({
+          redirect_uri: authentication.redirect_uri,
+        });
       } else {
-        response.result = { error: "Can't authenticate" };
+        response = this.createResultResponse({
+          error: "Can't authenticate",
+        });
       }
     } else if (!app) {
-      response.result = { error: "No valid client_id" };
+      response = this.createResultResponse({
+        error: "No valid client_id",
+      });
     } else if (user == null && userId) {
-      response.result = { error: "No valid user_id" };
+      response = this.createResultResponse({
+        error: "No valid user_id",
+      });
     } else if (user == null && username && password) {
-      response.result = { error: "Wrong credentials" };
+      response = this.createResultResponse({
+        error: "Wrong credentials",
+      });
     } else {
-      response.result = { error: "Not valid" };
+      response = this.createResultResponse({
+        error: "Not valid",
+      });
     }
     return response;
   }
 
   /**
    * Request an access token
+   * Inspired by Offical Doc of OAuth2, resume here :
+   * https://docs.google.com/document/d/1yEzRcvOlHXoMmBmV49G4HxAPEmkWuW7CFGo2cuDYdfo/edit?usp=sharing
    */
   async requestAccessToken(params) {
     const {
+      grant_type: grantType,
+      refresh_token: refreshToken,
+      client_id: clientId,
       username,
       password,
-      grant_type: grantType,
       /* redirect_uri: redirectUri, */
-      client_id: clientId,
       /* ...extras */
     } = params;
-    const response = {};
-    let authentication = null;
-    let user = null;
-    // Only grantType = password for now
-    if (grantType === "password") {
-      // validate user
-      user = await this.model.validateCredentials(username, password);
-      if (user) {
-        // validate authentication
-        authentication = await this.model.getAuthentication(clientId, user.id);
-        if (!authentication) {
-          response.result = { error: "Not authentified" };
-        }
-        // TODO extras, redirectUri
+    let response = {};
+    if (clientId) {
+      if (grantType === GRANT_TYPE_PASSWORD) {
+        response = await this.requestGrantTypePassword(
+          clientId,
+          username,
+          password,
+        );
+      } else if (grantType === GRANT_TYPE_REFRESH_TOKEN) {
+        response = await this.requestGrantTypeRefreshToken(
+          clientId,
+          refreshToken,
+        );
       } else {
-        response.result = { error: "Can't authenticate" };
+        response = this.createResultResponse({
+          error: `Unknown grant type: ${grantType}`,
+        });
       }
     } else {
-      response.result = { error: `Unknown grant type: ${grantType}` };
+      response = this.createResultResponse({
+        error: "Require client_id",
+      });
     }
+    return response;
+  }
 
+  /**
+   * requestGrantTypePassword() used in requestAccessToken() for GrantType Password
+   *
+   * The Password grant type is used to obtain additional access tokens
+   * in order to prolong the client’s authorization of a user’s resources.
+   *
+   * Password Grant require : client_id, client_secret, "redirect_uri", username, password
+   */
+  async requestGrantTypePassword(clientId, username, password) {
+    let response = {};
+    let authentication = null;
+    let user = null;
+    // validate user
+    user = await this.model.validateCredentials(username, password);
+    if (user) {
+      // validate authentication
+      authentication = await this.model.getAuthentication(clientId, user.id);
+      if (!authentication) {
+        response = this.createResultResponse({ error: "Not authentified" });
+      }
+      // TODO extras, redirectUri
+    } else {
+      response = this.createResultResponse({ error: "Can't authenticate" });
+    }
     if (user && authentication) {
       // generate accessToken
       const { scope } = authentication;
-      const accessToken = await this.model.getAccessToken(
+      const session = await this.model.getAccessToken(
+        GRANT_TYPE_PASSWORD,
+        null,
         clientId,
         user.id,
         scope,
       );
       response.result = {
-        access_token: accessToken.access_token,
-        expires_in: accessToken.expires_in,
-        scope: accessToken.scope,
+        access_token: session.access_token,
+        expires_in: session.expires_in,
+        refresh_token: session.refresh_token,
+        scope: session.scope,
       };
+    }
+    return response;
+  }
+
+  /* eslint-disable no-unused-vars */
+  /**
+   * requestGrantTypeRefreshToken() used in requestAccessToken() for GrantType Refresh Token
+   *
+   * The Refresh Token grant type is used to obtain a new access token
+   * without setting a password.
+   *
+   * Refresh Token Grant require : client_id, client_secret, refresh_token
+   */
+  async requestGrantTypeRefreshToken(clientId, refreshToken) {
+    let response = {};
+    // no need to validate user we have refreshToken
+    if (refreshToken) {
+      // generate accessToken, scope is stock in refresh
+      const session = await this.model.getAccessToken(
+        GRANT_TYPE_REFRESH_TOKEN,
+        refreshToken,
+        clientId,
+      );
+      if (session.error === undefined) {
+        response = this.createResultResponse({
+          access_token: session.access_token,
+          expires_in: session.expires_in,
+          refresh_token: session.refresh_token,
+          scope: session.scope,
+        });
+      } else {
+        response = this.createResultResponse({
+          error: session.error,
+        });
+      }
+      // TODO extras, redirectUri
+    } else {
+      response = this.createResultResponse({
+        error: "Use GRANT_TYPE_REFRESH_TOKEN without refresh_token",
+      });
     }
     return response;
   }

@@ -5,16 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 import zoauthServer from "zoauth/zoauthServer";
-
-const mysqlConfig = {
-  database: {
-    datatype: "mysql",
-    host: "localhost",
-    name: "auth_test",
-    user: "root",
-  },
-  endpoint: "/auth",
-};
+import { mysqlConfig } from "./config";
 
 const describeParams = (name, params, func) => {
   params.forEach((p) => {
@@ -241,6 +232,7 @@ describeParams(
         expect(Object.keys(result)).toEqual([
           "access_token",
           "expires_in",
+          "refresh_token",
           "scope",
           "username",
           "user_id",
@@ -424,6 +416,7 @@ describeParams(
         expect(Object.keys(result)).toEqual([
           "access_token",
           "expires_in",
+          "refresh_token",
           "scope",
         ]);
         expect(result.access_token).toHaveLength(48);
@@ -507,7 +500,153 @@ describeParams(
         };
         response = await authServer.requestAccessToken(params);
         ({ result } = response);
-        expect(result.error).toEqual("Not authentified");
+        expect(result.error).toEqual("Require client_id");
+      });
+    });
+
+    describe("requestAccessTokenWithRefreshToken", () => {
+      it("should get accessToken", async () => {
+        let params = {
+          name: "Zoapp",
+          grant_type: "password",
+          redirect_uri: "localhost",
+          email: "toto@test.com",
+        };
+        const authServer = zoauthServer(config);
+        await authServer.reset();
+        await authServer.start();
+
+        let response = await authServer.registerApplication(params);
+        let { result } = response;
+        expect(Object.keys(result)).toEqual(["client_id", "client_secret"]);
+        expect(result.client_id).toHaveLength(64);
+        const clientId = result.client_id;
+
+        params = {
+          client_id: clientId,
+          username: "toto",
+          password: "12345",
+          email: "toto@test.com",
+        };
+        response = await authServer.registerUser(params);
+        ({ result } = response);
+        expect(Object.keys(result)).toEqual(["id", "username", "email"]);
+        expect(result.id).toHaveLength(32);
+
+        params = {
+          client_id: clientId,
+          username: "toto",
+          password: "12345",
+          redirect_uri: "localhost",
+        };
+        response = await authServer.authorizeAccess(params);
+        ({ result } = response);
+        expect(Object.keys(result)).toEqual(["redirect_uri"]);
+        expect(result.redirect_uri).toEqual("localhost");
+
+        params = {
+          client_id: clientId,
+          username: "toto",
+          password: "12345",
+          redirect_uri: "localhost",
+          grant_type: "password",
+        };
+        response = await authServer.requestAccessToken(params);
+        ({ result } = response);
+        expect(Object.keys(result)).toEqual([
+          "access_token",
+          "expires_in",
+          "refresh_token",
+          "scope",
+        ]);
+        expect(result.access_token).toHaveLength(48);
+        const oldToken = {
+          access_token: result.access_token,
+          refresh_token: result.refresh_token,
+        };
+
+        params = {
+          grant_type: "refresh_token",
+          refresh_token: result.refresh_token,
+          client_id: clientId,
+        };
+        response = await authServer.requestAccessToken(params);
+        ({ result } = response);
+        expect(Object.keys(result)).toEqual([
+          "access_token",
+          "expires_in",
+          "refresh_token",
+          "scope",
+        ]);
+        expect(result.access_token).toHaveLength(48);
+        const newToken = {
+          access_token: result.access_token,
+          refresh_token: result.refresh_token,
+        };
+        expect(newToken).not.toBe(oldToken);
+      });
+
+      it("should not get accessToken", async () => {
+        let params = {
+          name: "Zoapp",
+          grant_type: "password",
+          redirect_uri: "localhost",
+          email: "toto@test.com",
+        };
+        const authServer = zoauthServer(config);
+        await authServer.reset();
+        await authServer.start();
+
+        let response = await authServer.registerApplication(params);
+        let { result } = response;
+        expect(Object.keys(result)).toEqual(["client_id", "client_secret"]);
+        expect(result.client_id).toHaveLength(64);
+        const clientId = result.client_id;
+
+        params = {
+          client_id: clientId,
+          username: "toto",
+          password: "12345",
+          email: "toto@test.com",
+        };
+        response = await authServer.registerUser(params);
+        ({ result } = response);
+        expect(Object.keys(result)).toEqual(["id", "username", "email"]);
+        expect(result.id).toHaveLength(32);
+
+        params = {
+          client_id: clientId,
+        };
+        response = await authServer.requestAccessToken(params);
+        ({ result } = response);
+        expect(result.error).toEqual("Unknown grant type: undefined");
+
+        params = {
+          client_id: clientId,
+          grant_type: "refresh_token",
+        };
+        response = await authServer.requestAccessToken(params);
+        ({ result } = response);
+        expect(result.error).toEqual(
+          "Use GRANT_TYPE_REFRESH_TOKEN without refresh_token",
+        );
+
+        params = {
+          grant_type: "refresh_token",
+          refresh_token: "bypass",
+          client_id: clientId,
+        };
+        response = await authServer.requestAccessToken(params);
+        ({ result } = response);
+        expect(result.error).toEqual("Wrong refresh_token");
+
+        params = {
+          grant_type: "refresh_token",
+          refresh_token: "hacked",
+        };
+        response = await authServer.requestAccessToken(params);
+        ({ result } = response);
+        expect(result.error).toEqual("Require client_id");
       });
     });
   },

@@ -119,8 +119,20 @@ const descriptor = {
         access_token: {
           type: "string",
         },
+        access_created: {
+          type: "#DateTime",
+        },
         expires_in: {
           type: "integer",
+        },
+        refresh_token: {
+          type: "string",
+        },
+        refresh_expires_in: {
+          type: "integer",
+        },
+        refresh_created: {
+          type: "#DateTime",
         },
         scope: {
           type: "array",
