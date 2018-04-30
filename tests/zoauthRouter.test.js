@@ -6,16 +6,7 @@
  */
 import zoauthServer from "zoauth/zoauthServer";
 import ZOAuthRouter, { send } from "zoauth/zoauthRouter";
-
-const mysqlConfig = {
-  database: {
-    datatype: "mysql",
-    host: "localhost",
-    name: "auth_test",
-    user: "root",
-  },
-  endpoint: "/auth",
-};
+import { mysqlConfig } from "./config";
 
 const describeParams = (name, params, func) => {
   params.forEach((p) => {
@@ -89,6 +80,7 @@ describeParams(
         expect(Object.keys(result)).toEqual([
           "access_token",
           "expires_in",
+          "refresh_token",
           "scope",
         ]);
         accessToken = result.access_token;
@@ -177,6 +169,7 @@ describeParams(
         expect(Object.keys(result)).toEqual([
           "access_token",
           "expires_in",
+          "refresh_token",
           "scope",
         ]);
         accessToken = result.access_token;
@@ -198,6 +191,7 @@ describeParams(
           "access_token",
           "client_id",
           "expires_in",
+          "refresh_token",
           "scope",
           "user_id",
         ]);
