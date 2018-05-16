@@ -79,14 +79,16 @@ class ZOAuthRoute {
           payload = await callback(res.locals.context);
           // TODO call logging
         } catch (error) {
-          // TODO error logging
-          payload = {
+          status = error.status ? error.status : 500;
+
+          payload = { error: error.message };
+          logger.error("error request", {
             error: error.message,
             stack: error.stack,
             code: error.code,
-          };
-          status = 500;
+          });
         }
+
         send(res, payload, status, res.locals.access.cors);
       },
     );
