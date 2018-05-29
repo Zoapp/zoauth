@@ -116,24 +116,25 @@ export default class ZOAuthRouter {
     this.authServer
       .grantAccess(routeName, method, token, appCredentials)
       .then((access) => {
-        let n = false;
+        let status = 200;
         let context = null;
         let { result } = access;
+
         if (!result.error) {
           context = new RouteContext(req, res);
-          n = true;
           if (callback) {
             result = callback(context);
             if (result.error) {
-              n = false;
+              status = result.status || 401;
             } else {
               context.access = access.result;
             }
           }
+        } else {
+          status = result.status || 401;
         }
 
-        const status = n ? 200 : 401;
-        if (n) {
+        if (status >= 200 && status < 300) {
           res.locals.access = access.result;
           res.locals.context = context;
           next();
