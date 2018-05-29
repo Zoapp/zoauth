@@ -95,13 +95,13 @@ export class ZOAuthServer {
             };
             /* eslint-enable camelcase */
           } else {
-            response.result = { error: "Not allowed" };
+            response.result = { error: "Not allowed", status: 403 };
           }
         } else {
-          response.result = { error: "Not valid user account" };
+          response.result = { error: "Not valid user account", status: 401 };
         }
       } else {
-        response.result = { error: "Not valid access token" };
+        response.result = { error: "Not valid access token", status: 401 };
       }
     } else if (route && route.isOpen()) {
       response.result = { access: "open" };
