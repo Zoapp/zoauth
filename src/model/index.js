@@ -205,6 +205,16 @@ export class ZOAuthModel {
     return null;
   }
 
+  async retrieveUsers(anonymous = false, userTable = this.getUsers()) {
+    let where = null;
+
+    if (anonymous !== null) {
+      where = `anonymous=${anonymous ? 1 : null}`;
+    }
+
+    return userTable.getItems(where);
+  }
+
   async getUserByNameOrEmail(login, users = this.getUsers()) {
     let user = null;
     if (!StringTools.stringIsEmpty(login)) {

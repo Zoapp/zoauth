@@ -478,6 +478,10 @@ export class ZOAuthServer {
     return user;
   }
 
+  async getUsers(anonymous = false) {
+    return this.model.retrieveUsers(anonymous);
+  }
+
   async getAuthsWithScope(scope, clientId) {
     return this.model.queryAuthentications(
       `scope=${scope} AND client_id=${clientId}`,
