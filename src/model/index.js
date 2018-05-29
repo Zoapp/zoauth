@@ -212,7 +212,19 @@ export class ZOAuthModel {
       where = `anonymous=${anonymous ? 1 : null}`;
     }
 
-    return userTable.getItems(where);
+    const users = await userTable.getItems(where);
+
+    return Promise.all(
+      users.map(async (user) => {
+        const u = { ...user };
+
+        const auth = await this.queryAuthentications(`user_id=${u.id}`);
+
+        u.scope = auth.scope;
+
+        return u;
+      }),
+    );
   }
 
   async getUserByNameOrEmail(login, users = this.getUsers()) {
