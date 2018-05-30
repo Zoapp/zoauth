@@ -19,9 +19,11 @@ const setHeaders = (res, status, cors) => {
 };
 
 const sendResponse = async (data, res, ip) => {
-  const status = data.error ? 401 : 200;
+  const d = { ...data };
+  const status = d.error ? d.status || 401 : 200;
+  if (d.status) delete d.status;
   setHeaders(res, status, ip);
-  res.json(data);
+  res.json(d);
 };
 
 const handleAuthFunc = async (req, res, callback) => {
