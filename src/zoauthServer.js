@@ -427,11 +427,11 @@ export class ZOAuthServer {
         // validate authentication
         authentication = await this.model.getAuthentication(clientId, user.id);
         if (!authentication) {
-          response.result = { error: "Not authentified" };
+          response.result = { error: "Not authentified", status: 400 };
         }
         // TODO extras, redirectUri
       } else {
-        response.result = { error: "Can't authenticate" };
+        response.result = { error: "Can't authenticate", status: 400 };
       }
     } else {
       response.result = { error: `Unknown grant type: ${grantType}` };
