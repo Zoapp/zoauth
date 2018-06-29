@@ -24,7 +24,7 @@
   "dependencies": {
     "body-parser": "^1.17.2",
     "express": "^4.15.3",
-    "zoapp-core": "^0.12.1"
+    "zoapp-core": "^0.12.2"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",

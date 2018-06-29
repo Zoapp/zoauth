@@ -73,6 +73,11 @@ const descriptor = {
         },
         password: {
           type: "string",
+          size: "128",
+        },
+        salt: {
+          type: "string",
+          size: "128",
         },
         creation_date: {
           type: "#DateTime",
