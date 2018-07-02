@@ -28,7 +28,6 @@ const sendResponse = async (data, res, ip) => {
 
 const handleAuthFunc = async (req, res, callback) => {
   const params = req.body;
-  // logger.info(JSON.stringify(req.body));
   const data = await callback(params);
   const result = data.result || data;
   // TODO ip for CORS
