@@ -345,7 +345,7 @@ describeParams(
         await authServer.start();
 
         if (config.database) {
-          // insert an app in bdd
+          // insert an app in db
           await authServer.model.database.query(
             " INSERT INTO `applications` (`id`,`idx`,`name`,`email`,`redirect_uri`,`grant_type`,`creation_date`,`secret`) VALUES ( unhex(replace(uuid(),'-','')), 'authclientid', 'foo', 'opla@example.org', 'http://127.0.0.1:8080', 'password', '2018-05-25 00:04:46.968', 'authsecret') ",
           );
@@ -359,11 +359,58 @@ describeParams(
           };
           let response = await authServer.registerUser(params);
           let { result } = response;
-          expect(Object.keys(result)).toEqual(["id", "username", "email"]);
+          expect(Object.keys(result)).toEqual([
+            "id",
+            "username",
+            "validation",
+            "email",
+          ]);
           expect(result.id).toHaveLength(32);
 
           response = await authServer.authorizeAccess(params);
           ({ result } = response);
+          expect(Object.keys(result)).toEqual(["redirect_uri"]);
+          expect(result.redirect_uri).toEqual("localhost");
+          response = await authServer.authorizeAccess(params);
+          ({ result } = response);
+          expect(Object.keys(result)).toEqual(["redirect_uri"]);
+          expect(result.redirect_uri).toEqual("localhost");
+        }
+      });
+
+      it("should authorize pre-existing user", async () => {
+        let params = {
+          name: "Zoapp",
+          grant_type: "password",
+          redirect_uri: "localhost",
+          email: "toto@test.com",
+        };
+        const authServer = zoauthServer(config);
+        await authServer.reset();
+        await authServer.start();
+
+        if (config.database) {
+          // insert an app in db
+          await authServer.model.database.query(
+            " INSERT INTO `applications` (`id`,`idx`,`name`,`email`,`redirect_uri`,`grant_type`,`creation_date`,`secret`)" +
+              " VALUES ( unhex(replace(uuid(),'-','')), 'authclientid', 'foo', 'opla@example.org', 'http://127.0.0.1:8080', 'password', '2018-05-25 00:04:46.968', 'authsecret') ",
+          );
+          // insert a user in db
+          await authServer.model.database.query(
+            " INSERT INTO `users` (`id`,`idx`,`username`,`password`,`salt`,`email`,`valid_email`,`creation_date`)" +
+              " VALUES (unhex(replace(uuid(),'-','')), 'userid', 'admin', 'c7d9fedb60454255eba330ece541c9ab5730d41d2c784558f1ebabc494f6e14ba79a6483cc03ab512a3a90d2003af5ae164a34bff14fba6dec7174201e09548c', '75b1ee4f46e17e093326f88832e832df7cf7d0774cafedae4a66bd3de11cb7179364200c13e79c42fedc00f96fabe39bb516a5945f1f98464046a3ae0de2b662', 'test@opla.ai', 0, '2018-05-29 09:19:03.012'); ",
+          );
+          const clientId = "authclientid";
+
+          params = {
+            client_id: clientId,
+            username: "admin",
+            password: "test",
+            email: "test@opla.ai",
+          };
+
+          let response = await authServer.authorizeAccess(params);
+          let { result } = response;
           expect(Object.keys(result)).toEqual(["redirect_uri"]);
           expect(result.redirect_uri).toEqual("localhost");
           response = await authServer.authorizeAccess(params);
