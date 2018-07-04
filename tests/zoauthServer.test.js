@@ -333,6 +333,46 @@ describeParams(
         expect(result.redirect_uri).toEqual("localhost");
       });
 
+      it("should authorize user in existing application", async () => {
+        let params = {
+          name: "Zoapp",
+          grant_type: "password",
+          redirect_uri: "localhost",
+          email: "toto@test.com",
+        };
+        const authServer = zoauthServer(config);
+        await authServer.reset();
+        await authServer.start();
+
+        if (config.database) {
+          // insert an app in bdd
+          await authServer.model.database.query(
+            " INSERT INTO `applications` (`id`,`idx`,`name`,`email`,`redirect_uri`,`grant_type`,`creation_date`,`secret`) VALUES ( unhex(replace(uuid(),'-','')), 'authclientid', 'foo', 'opla@example.org', 'http://127.0.0.1:8080', 'password', '2018-05-25 00:04:46.968', 'authsecret') ",
+          );
+          const clientId = "authclientid";
+
+          params = {
+            client_id: clientId,
+            username: "toto",
+            password: "12345",
+            email: "toto@test.com",
+          };
+          let response = await authServer.registerUser(params);
+          let { result } = response;
+          expect(Object.keys(result)).toEqual(["id", "username", "email"]);
+          expect(result.id).toHaveLength(32);
+
+          response = await authServer.authorizeAccess(params);
+          ({ result } = response);
+          expect(Object.keys(result)).toEqual(["redirect_uri"]);
+          expect(result.redirect_uri).toEqual("localhost");
+          response = await authServer.authorizeAccess(params);
+          ({ result } = response);
+          expect(Object.keys(result)).toEqual(["redirect_uri"]);
+          expect(result.redirect_uri).toEqual("localhost");
+        }
+      });
+
       it("should not authorize User", async () => {
         let params = {
           name: "Zoapp",
