@@ -5,6 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 import { StringTools, Password, dbCreate } from "zoapp-core";
+import DBMigrate from "db-migrate";
 import descriptor from "./descriptor";
 
 export class ZOAuthModel {
@@ -15,6 +16,29 @@ export class ZOAuthModel {
       // logger.info("descriptor=", JSON.stringify(descriptor));
       this.database = dbCreate({ descriptor, ...config });
     }
+
+    // migration
+    if (config.host) {
+      const dbmigrate = DBMigrate.getInstance(true, {
+        cwd: `${__dirname}/../`,
+        config: {
+          default: {
+            driver: config.datatype,
+            user: config.user,
+            password: config.password || "",
+            host: config.host,
+            database: config.name,
+          },
+        },
+        env: "default",
+      });
+      dbmigrate.silence(true);
+      dbmigrate.up(() => {
+        logger.info("zoauth migration done");
+      });
+
+    }
+
     this.config = config;
     this.tokenExpiration = this.config.tokenExpiration || 3600;
   }
