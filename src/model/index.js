@@ -5,7 +5,8 @@
  * LICENSE file in the root directory of this source tree.
  */
 import { StringTools, Password, dbCreate } from "zoapp-core";
-import descriptor from "./descriptor";
+import descriptor from "../schemas/auth.json";
+import migrations from "../migrations";
 
 export class ZOAuthModel {
   constructor(config = {}, database = null) {
@@ -21,6 +22,15 @@ export class ZOAuthModel {
 
   async open() {
     await this.database.load();
+    // migration
+    migrations.forEach((migration) => {
+      this.database.applyMigration(
+        "authMigrations",
+        migration.id,
+        migration.name,
+        migration.queries,
+      );
+    });
   }
 
   async close() {
