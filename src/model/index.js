@@ -219,9 +219,10 @@ export class ZOAuthModel {
         const u = { ...user };
 
         const auth = await this.queryAuthentications(`user_id=${u.id}`);
-
-        u.scope = auth.scope;
-
+        // In case of not authenticated, no scope associated
+        if (auth) {
+          u.scope = auth.scope;
+        }
         return u;
       }),
     );
