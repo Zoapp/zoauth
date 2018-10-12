@@ -4,8 +4,9 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-import { StringTools, dbCreate } from "zoapp-core";
-import descriptor from "./descriptor";
+import { StringTools, Password, dbCreate } from "zoapp-core";
+import descriptor from "../schemas/auth.json";
+import migrations from "../migrations";
 
 export class ZOAuthModel {
   constructor(config = {}, database = null) {
@@ -21,6 +22,15 @@ export class ZOAuthModel {
 
   async open() {
     await this.database.load();
+    // migration
+    migrations.forEach((migration) => {
+      this.database.applyMigration(
+        "authMigrations",
+        migration.id,
+        migration.name,
+        migration.queries,
+      );
+    });
   }
 
   async close() {
@@ -159,8 +169,9 @@ export class ZOAuthModel {
       const value = u[key];
       if (key === "password" && value) {
         // TODO check password complexity
-        // TODO hash password
-        cachedUser.password = StringTools.hashPassword(value);
+        const salt = Password.generateSalt();
+        cachedUser.salt = salt;
+        cachedUser.password = Password.generateSaltHash(value, salt);
       } else if (value) {
         cachedUser[key] = value;
       }
@@ -259,7 +270,7 @@ export class ZOAuthModel {
         // logger.info("validateCredentials found", user.password, pw);
         if (
           password !== user.password &&
-          StringTools.hashPassword(password) !== user.password
+          Password.generateSaltHash(password, user.salt) !== user.password
         ) {
           // logger.info("validateCredentials not ok");
           user = null;
