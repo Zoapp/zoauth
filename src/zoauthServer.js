@@ -292,6 +292,8 @@ export class ZOAuthServer {
     }
     let user = null;
     const policies = app.policies || { userNeedEmail: true }; // TODO remove this default policies
+    const validationPolicy = policies.validation || "none";
+    const validation = !!(validationPolicy === "none");
     if (
       StringTools.stringIsEmpty(username) ||
       (policies.userNeedEmail && StringTools.stringIsEmpty(email)) ||
@@ -325,11 +327,11 @@ export class ZOAuthServer {
         };
         if (email) {
           user.email = email;
-          user.valid_email = false;
+          user.valid_email = validation;
         }
       } else {
         user = null;
-        response.result = { error: `User exist: ${username}` };
+        response.result = { error: `Not valid user: ${username}` };
       }
     } else {
       response.result = { error: "Wrong parameters sent" };
@@ -340,6 +342,7 @@ export class ZOAuthServer {
         response.result = {
           id: user.id,
           username: user.username,
+          validation: validationPolicy,
         };
         if (user.email) {
           response.result.email = user.email;

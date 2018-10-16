@@ -62,7 +62,12 @@ describeParams(
         };
         response = await authServer.registerUser(params);
         ({ result } = response);
-        expect(Object.keys(result)).toEqual(["id", "username", "email"]);
+        expect(Object.keys(result)).toEqual([
+          "id",
+          "username",
+          "validation",
+          "email",
+        ]);
         expect(result.id).toHaveLength(32);
 
         params = {
@@ -151,7 +156,12 @@ describeParams(
         };
         response = await authServer.registerUser(params);
         ({ result } = response);
-        expect(Object.keys(result)).toEqual(["id", "username", "email"]);
+        expect(Object.keys(result)).toEqual([
+          "id",
+          "username",
+          "validation",
+          "email",
+        ]);
         expect(result.id).toHaveLength(32);
 
         params = {
