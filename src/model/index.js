@@ -231,7 +231,9 @@ export class ZOAuthModel {
 
         const auth = await this.queryAuthentications(`user_id=${u.id}`);
 
-        u.scope = auth.scope;
+        if (auth) {
+          u.scope = auth.scope;
+        }
 
         return u;
       }),
