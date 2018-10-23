@@ -73,6 +73,12 @@ export default (authServer = null, app = null, config = {}) => {
   router.post("/scope", async (req, res) => {
     handleAuthFunc(req, res, (params) => a.authServer.registerScope(params));
   });
+  router.post("/validate", async (req, res) => {
+    handleAuthFunc(req, res, (params) => a.authServer.validateUser(params));
+  });
+  router.post("/reset", async (req, res) => {
+    handleAuthFunc(req, res, (params) => a.authServer.resetPassword(params));
+  });
   /* eslint-disable no-unused-vars */
   /* router.use((err, req, res, next) => {
     res.status(500).json({ error: "internal server error" });

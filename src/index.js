@@ -14,8 +14,8 @@ import ZOAuthRouter from "./zoauthRouter";
 
 setupLogger();
 
-export default (config = {}, app = null) => {
-  const authServer = new ZOAuthServer(config);
+export default (config = {}, app = null, middleware = null) => {
+  const authServer = new ZOAuthServer(config, null, middleware);
   authApi(authServer, app, config);
   return authServer;
 };

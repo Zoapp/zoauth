@@ -16,10 +16,11 @@ export class ZOAuthServer {
     CANT_SAVE_APP: "Can't save application",
   }; */
 
-  constructor(config = {}, database = null) {
+  constructor(config = {}, database = null, middleware = null) {
     this.config = { ...config };
     this.model = createModel(this.config.database, database);
     this.permissionRoutes = [];
+    this.middleware = middleware;
   }
 
   static errorMessages() {}
@@ -116,6 +117,59 @@ export class ZOAuthServer {
       };
     } else {
       response.result = { error: "No permission route" };
+    }
+    return response;
+  }
+
+  async changePassword(params) {
+    const { client_id: clientId, email, password } = params;
+    let response = null;
+    if (clientId) {
+      const app = await this.model.getApplication(clientId);
+      const user = await this.model.getUser(null, null, email);
+      if (user && ZOAuthServer.validatePassword({ password })) {
+        const policies = (app && app.policies) || {};
+        if (
+          policies.resetPassword &&
+          this.middleware &&
+          this.middleware.sendChangedPassword
+        ) {
+          user.password = password;
+          // TODO backup previous password
+          await this.model.setUser(user);
+          if (this.middleware.sendChangedPassword(email)) {
+            response.result = { ok: "Password changed" };
+          }
+        }
+      }
+    }
+    if (!response) {
+      response = { error: "Not valid action" };
+    }
+    return response;
+  }
+
+  async resetPassword(params) {
+    const { client_id: clientId, email } = params;
+    let response = null;
+    if (clientId) {
+      const app = await this.model.getApplication(clientId);
+      const user = await this.model.getUser(null, null, email);
+      if (user) {
+        const policies = (app && app.policies) || {};
+        if (
+          policies.resetPassword &&
+          this.middleware &&
+          this.middleware.sendResetPassword
+        ) {
+          if (this.middleware.sendResetPassword(email)) {
+            response.result = { ok: "Email send" };
+          }
+        }
+      }
+    }
+    if (!response) {
+      response = { error: "Not valid action" };
     }
     return response;
   }
@@ -328,6 +382,9 @@ export class ZOAuthServer {
         if (email) {
           user.email = email;
           user.valid_email = validation;
+          if (this.middleware && this.middleware.sendUserCreated) {
+            this.middleware.sendUserCreated(email, username, validationPolicy);
+          }
         }
       } else {
         user = null;
