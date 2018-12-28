@@ -59,6 +59,7 @@ describeParams(
           username: "toto",
           password: "12345",
           email: "toto@test.com",
+          accept: true,
         };
         response = await authServer.registerUser(params);
         ({ result } = response);
@@ -153,6 +154,7 @@ describeParams(
           username: "toto",
           password: "12345",
           email: "toto@test.com",
+          accept: true,
         };
         response = await authServer.registerUser(params);
         ({ result } = response);

@@ -348,6 +348,7 @@ export class ZOAuthServer {
     const policies = app.policies || { userNeedEmail: true }; // TODO remove this default policies
     const validationPolicy = policies.validation || "none";
     const validation = !!(validationPolicy === "none");
+
     if (
       StringTools.stringIsEmpty(username) ||
       (policies.userNeedEmail && StringTools.stringIsEmpty(email)) ||
@@ -373,6 +374,10 @@ export class ZOAuthServer {
     } else if (
       ZOAuthServer.validateCredentialsValue(username, email, password, policies)
     ) {
+      if (!extras.accept) {
+        response.result = { error: "Please accept policies's terms" };
+        return response;
+      }
       user = await this.model.getUser(null, username, email);
       if (!user) {
         user = {
