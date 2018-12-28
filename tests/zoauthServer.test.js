@@ -170,6 +170,18 @@ describeParams(
         response = await authServer.registerUser(params);
         ({ result } = response);
         expect(result.error).toEqual("Please accept policies's terms");
+
+        params = {
+          client_id: clientId,
+          username: "toto",
+          password: "12345",
+          email: "toto@test.com",
+          accept: false,
+        };
+        await authServer.registerUser(params);
+        response = await authServer.registerUser(params);
+        ({ result } = response);
+        expect(result.error).toEqual("Please accept policies's terms");
       });
     });
 
