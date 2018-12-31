@@ -1,6 +1,6 @@
 {
   "name": "zoauth-server",
-  "version": "0.10.1",
+  "version": "0.10.2",
   "author": "Mik BRY",
   "license": "MIT",
   "description": "Authentification Server using ES7",
