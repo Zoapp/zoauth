@@ -98,6 +98,7 @@ describeParams(
           username: "toto",
           password: "12345",
           email: "toto@test.com",
+          accept: true,
         };
         response = await authServer.registerUser(params);
         ({ result } = response);
@@ -127,12 +128,12 @@ describeParams(
         const clientId = result.client_id;
         expect(clientId).toHaveLength(64);
 
-        params = { client_id: clientId };
+        params = { client_id: clientId, accept: true };
         response = await authServer.registerUser(params);
         ({ result } = response);
         expect(result.error).toEqual("Wrong parameters sent");
 
-        params = { client_id: clientId, email: "tutu@test.com" };
+        params = { client_id: clientId, email: "tutu@test.com", accept: true };
         response = await authServer.registerUser(params);
         ({ result } = response);
         expect(result.error).toEqual("Wrong parameters sent");
@@ -141,6 +142,7 @@ describeParams(
           client_id: clientId,
           email: "tutu@test.com",
           username: "tutu",
+          accept: true,
         };
         response = await authServer.registerUser(params);
         ({ result } = response);
@@ -151,11 +153,35 @@ describeParams(
           username: "toto",
           password: "12345",
           email: "toto@test.com",
+          accept: true,
         };
         await authServer.registerUser(params);
         response = await authServer.registerUser(params);
         ({ result } = response);
         expect(result.error).toEqual("Not valid user: toto");
+
+        params = {
+          client_id: clientId,
+          username: "toto",
+          password: "12345",
+          email: "toto@test.com",
+        };
+        await authServer.registerUser(params);
+        response = await authServer.registerUser(params);
+        ({ result } = response);
+        expect(result.error).toEqual("Please accept policies's terms");
+
+        params = {
+          client_id: clientId,
+          username: "toto",
+          password: "12345",
+          email: "toto@test.com",
+          accept: false,
+        };
+        await authServer.registerUser(params);
+        response = await authServer.registerUser(params);
+        ({ result } = response);
+        expect(result.error).toEqual("Please accept policies's terms");
       });
     });
 
@@ -306,6 +332,7 @@ describeParams(
           username: "toto",
           password: "12345",
           email: "toto@test.com",
+          accept: true,
         };
         response = await authServer.registerUser(params);
         ({ result } = response);
@@ -355,6 +382,7 @@ describeParams(
           username: "toto",
           password: "12345",
           email: "toto@test.com",
+          accept: true,
         };
         response = await authServer.registerUser(params);
         ({ result } = response);
@@ -410,6 +438,7 @@ describeParams(
           username: "toto",
           password: "12345",
           email: "toto@test.com",
+          accept: true,
         };
         response = await authServer.registerUser(params);
         ({ result } = response);
@@ -471,6 +500,7 @@ describeParams(
           username: "toto",
           password: "12345",
           email: "toto@test.com",
+          accept: true,
         };
         response = await authServer.registerUser(params);
         ({ result } = response);
