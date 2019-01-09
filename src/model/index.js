@@ -146,10 +146,14 @@ export class ZOAuthModel {
 
   async setUser(user, users = this.getUsers()) {
     const u = { ...user };
-    const { username, email } = user;
+    const { id, username, email } = user;
     // const password = user.password;
-
-    let cachedUser = await this.getUser(username, email, users);
+    let cachedUser = null;
+    if (username && email && !id) {
+      cachedUser = await this.getUser(null, username, email, users);
+    } else {
+      cachedUser = await this.getUser(id, null, null, users);
+    }
     let userId = null;
     if (!user.id) {
       // generate user_id
@@ -163,6 +167,7 @@ export class ZOAuthModel {
     } else if (cachedUser) {
       userId = user.id;
     } else {
+      // Then user.id is already defined.
       throw new Error("unknown user");
     }
     Object.keys(u).forEach((key) => {

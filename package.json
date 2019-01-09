@@ -13,7 +13,7 @@
     "lint": "eslint src tests",
     "start": "node dist",
     "start:dev": "nodemon -w src --exec \"babel-node src\"",
-    "test": "jest --runInBand --forceExit",
+    "test": "jest --runInBand --detectOpenHandles --forceExit",
     "willPublish": "yarn run lint:prod && yarn run test && yarn run build:prod"
   },
   "keywords": [
