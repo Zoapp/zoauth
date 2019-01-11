@@ -327,7 +327,7 @@ export class ZOAuthServer {
   /**
    * Register a ResourceOwner User
    */
-  async registerUser(params) {
+  async registerUser(params, accessToken) {
     const {
       client_id: clientId,
       username,
@@ -344,6 +344,15 @@ export class ZOAuthServer {
     if (!app) {
       return { error: "No client found" };
     }
+
+    // get scope from authenticated user for unauthorized not admin user
+    if (accessToken) {
+      const access = await this.model.validateAccessToken(accessToken);
+      if (access.scope !== "admin") {
+        return { error: "Unauthorized" };
+      }
+    }
+
     let user = null;
     const policies = app.policies || { userNeedEmail: true }; // TODO remove this default policies
     const validationPolicy = policies.validation || "none";
