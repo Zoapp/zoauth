@@ -60,7 +60,9 @@ export default (authServer = null, app = null, config = {}) => {
     handleAuthFunc(req, res, (params) => a.authServer.anonymousAccess(params));
   });
   router.post("/user", async (req, res) => {
-    handleAuthFunc(req, res, (params) => a.authServer.registerUser(params));
+    handleAuthFunc(req, res, (params) =>
+      a.authServer.registerUser(params, req.query.access_token),
+    );
   });
   router.post("/authorize", async (req, res) => {
     handleAuthFunc(req, res, (params) => a.authServer.authorizeAccess(params));
