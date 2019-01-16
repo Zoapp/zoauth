@@ -153,6 +153,26 @@ export class ZOAuthModel {
       cachedUser = await this.getUser(null, username, email, users);
     } else {
       cachedUser = await this.getUser(id, null, null, users);
+      const cachedValidationNameUser = await this.getUser(
+        null,
+        username,
+        null,
+        users,
+      );
+      const cachedValidationMailUser = await this.getUser(
+        null,
+        null,
+        email,
+        users,
+      );
+      if (
+        (cachedValidationNameUser &&
+          cachedValidationNameUser.id !== cachedUser.id) ||
+        (cachedValidationMailUser &&
+          cachedValidationMailUser.id !== cachedUser.id)
+      ) {
+        throw new Error("username / email are already used");
+      }
     }
     let userId = null;
     if (!user.id) {
