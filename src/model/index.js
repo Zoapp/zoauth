@@ -358,6 +358,13 @@ export class ZOAuthModel {
     return authentications.getItem(query);
   }
 
+  async deleteAuthentication(
+    authentication,
+    authentications = this.getAuthentications(),
+  ) {
+    return authentications.deleteItem(authentication);
+  }
+
   async getAccessToken(
     clientId,
     userId,

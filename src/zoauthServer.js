@@ -647,14 +647,62 @@ export class ZOAuthServer {
     return app;
   }
 
-  async validateUser(accessToken) {
-    if (accessToken) {
+  async validateUser(
+    { userId, newState, client_id: clientId, redirect_uri: redirectUri },
+    accessToken,
+  ) {
+    try {
       const access = await this.model.validateAccessToken(accessToken);
       if (access.scope !== "admin") {
-        return { error: "Unauthorized" };
+        throw new Error("Unauthorized.");
       }
+
+      let user = await this.model.getUser(userId);
+      if (!user) {
+        throw new Error("No valid user found.");
+      }
+
+      if (newState !== "enable" && newState !== "disable") {
+        throw new Error(`Invalide state type ${newState}.`);
+      }
+
+      user = {
+        id: user.id,
+        account_state: newState,
+      };
+      user = await this.model.setUser(user);
+      if (!user) {
+        throw new Error("User store faillure.");
+      }
+
+      if (newState === "enable") {
+        // Create authentacation row
+        const response = await this.authorizeAccess({
+          username: user.username,
+          password: user.password,
+          client_id: clientId,
+          user_id: user.id,
+          scope: "owner",
+          redirect_uri: redirectUri,
+        });
+        if (response.result.error) {
+          throw new Error(response.result.error);
+        }
+      } else {
+        // Delete authentacation row
+        const authentacation = await this.model.getAuthentication(
+          clientId,
+          user.id,
+        );
+        if (authentacation) {
+          await this.model.deleteAuthentication(authentacation.id);
+        }
+      }
+
+      return user;
+    } catch (error) {
+      return { result: { error: error.message } };
     }
-    return true;
   }
 }
 

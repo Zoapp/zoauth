@@ -76,7 +76,9 @@ export default (authServer = null, app = null, config = {}) => {
     handleAuthFunc(req, res, (params) => a.authServer.registerScope(params));
   });
   router.post("/validate", async (req, res) => {
-    handleAuthFunc(req, res, (params) => a.authServer.validateUser(params));
+    handleAuthFunc(req, res, (params) =>
+      a.authServer.validateUser(params, req.query.access_token),
+    );
   });
   router.post("/reset", async (req, res) => {
     handleAuthFunc(req, res, (params) => a.authServer.resetPassword(params));
