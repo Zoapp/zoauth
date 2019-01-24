@@ -351,8 +351,15 @@ export class ZOAuthServer {
   /**
    * Create pre user
    */
-  async createPreUser(accept, username, email, password, validationPolicy) {
-    const validation = validationPolicy === "none";
+  async createPreUser(
+    accept,
+    username,
+    email,
+    password,
+    validationPolicy,
+    scope = null,
+  ) {
+    const validation = validationPolicy === "none" || scope === "admin";
     if (!accept) {
       throw new Error("Please accept policies's terms.");
     }
@@ -396,9 +403,10 @@ export class ZOAuthServer {
       }
 
       // get scope from authenticated user for unauthorized not admin user
+      let scope;
       if (accessToken) {
-        const access = await this.model.validateAccessToken(accessToken);
-        if (access.scope !== "admin") {
+        ({ scope } = await this.model.validateAccessToken(accessToken));
+        if (scope !== "admin") {
           throw new Error("Unauthorized.");
         }
       }
@@ -429,6 +437,7 @@ export class ZOAuthServer {
           email,
           password,
           validationPolicy,
+          scope,
         );
       } else {
         throw new Error("Wrong parameters sent.");
