@@ -7,6 +7,7 @@
 import { StringTools, Password } from "zoapp-core";
 import createModel from "./model";
 import Route from "./model/route";
+import ValidationError from "./errors/ValidationError";
 
 export class ZOAuthServer {
   /* static ErrorsMessages = {
@@ -359,7 +360,8 @@ export class ZOAuthServer {
     validationPolicy,
     scope = null,
   ) {
-    const validation = validationPolicy === "none" || scope === "admin";
+    const policy = scope === "admin" ? "none" : validationPolicy;
+    const validation = policy === "none";
     if (!accept) {
       throw new Error("Please accept policies's terms.");
     }
@@ -379,7 +381,7 @@ export class ZOAuthServer {
       user.email = email;
       user.valid_email = validation;
       if (this.middleware && this.middleware.sendUserCreated) {
-        this.middleware.sendUserCreated(email, username, validationPolicy);
+        this.middleware.sendUserCreated(email, username, policy);
       }
     }
     return user;
@@ -488,7 +490,7 @@ export class ZOAuthServer {
       error = `${prefix} Your account is disable. Please call your administrator to investigate.`;
     }
     if (error) {
-      throw new Error(error);
+      throw new ValidationError(error);
     }
   }
 
@@ -547,6 +549,9 @@ export class ZOAuthServer {
       }
       return { result: { redirect_uri: authentication.redirect_uri } };
     } catch (error) {
+      if (error instanceof ValidationError) {
+        return { result: { error: error.toJson() } };
+      }
       return { result: { error: error.message } };
     }
   }
@@ -608,6 +613,9 @@ export class ZOAuthServer {
         },
       };
     } catch (error) {
+      if (error instanceof ValidationError) {
+        return { result: { error: error.toJson() } };
+      }
       return { result: { error: error.message } };
     }
   }
