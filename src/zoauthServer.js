@@ -380,9 +380,6 @@ export class ZOAuthServer {
     if (email) {
       user.email = email;
       user.valid_email = validation;
-      if (this.middleware && this.middleware.sendUserCreated) {
-        this.middleware.sendUserCreated(email, username, policy);
-      }
     }
     return user;
   }
@@ -415,7 +412,10 @@ export class ZOAuthServer {
 
       let user = null;
       const policies = app.policies || { userNeedEmail: true }; // TODO remove this default policies
-      const validationPolicy = policies.validation || "none";
+      const validationPolicy =
+        scope === "admin" || !policies.validation
+          ? "none"
+          : policies.validation;
 
       if (
         StringTools.stringIsEmpty(username) ||
@@ -457,6 +457,24 @@ export class ZOAuthServer {
       };
       if (user.email) {
         result.email = user.email;
+        if (this.middleware && this.middleware.sendUserCreated) {
+          let activationMailToken;
+          if (validationPolicy === "mail") {
+            // Generate token to create mail activation link
+            activationMailToken = await this.model.getAccessToken(
+              clientId,
+              user.id,
+              "owner",
+              86400,
+            );
+          }
+          this.middleware.sendUserCreated(
+            email,
+            username,
+            validationPolicy,
+            activationMailToken,
+          );
+        }
       }
 
       return { result };
@@ -664,7 +682,7 @@ export class ZOAuthServer {
     return app;
   }
 
-  async validateUser(
+  async validateUserFromAdmin(
     { userId, newState, client_id: clientId, redirect_uri: redirectUri },
     accessToken,
   ) {
@@ -719,6 +737,66 @@ export class ZOAuthServer {
       return user;
     } catch (error) {
       return { result: { error: error.message } };
+    }
+  }
+
+  async validateUserFromMail({
+    username,
+    email,
+    client_id: clientId,
+    validation_token: validationToken,
+  }) {
+    let app;
+    try {
+      app = await this.model.getApplication(clientId);
+      if (!app) {
+        throw new Error("No client found.");
+      }
+
+      const access = await this.model.validateAccessToken(validationToken);
+      // Token is out of date
+      if (!access) {
+        throw new Error("Invalid token.");
+      }
+
+      // Get user from credentials
+      let user = await this.model.getUser(null, username, email);
+      if (!user) {
+        throw new Error("Invalid credentials.");
+      }
+
+      // Token is the right one for user credentials
+      if (access.user_id !== user.id) {
+        throw new Error("Invalid token");
+      }
+
+      user = {
+        id: user.id,
+        account_state: "enable",
+      };
+      user = await this.model.setUser(user);
+      if (!user) {
+        throw new Error("User store faillure.");
+      }
+
+      // Create authentacation row
+      const response = await this.authorizeAccess({
+        username: user.username,
+        password: user.password,
+        client_id: clientId,
+        user_id: user.id,
+        scope: "owner",
+      });
+      if (response.result.error) {
+        throw new Error(response.result.error);
+      }
+      return { result: { redirectUri: app.redirect_uri } };
+    } catch (error) {
+      const result = { error: error.message };
+      if (app) {
+        result.redirectUri = app.redirect_uri;
+      }
+      return { result };
     }
   }
 }
