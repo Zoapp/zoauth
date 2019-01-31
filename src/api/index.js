@@ -81,16 +81,18 @@ export default (authServer = null, app = null, config = {}) => {
     );
   });
   router.get("/validate", async (req, res) => {
-    const response = await a.authServer.validateUserFromMail(req.query);
-    if (response.result.redirectUri) {
-      let redirect = response.result.redirectUri;
+    const { result } = await a.authServer.validateUserFromMail(req.query);
+    if (result.redirectUri) {
+      let redirect = `${result.redirectUri}?`;
 
-      if (response.result.error) {
-        redirect += `?error=${response.result.error}`;
+      if (result.error) {
+        redirect += `error=${result.error}`;
+      } else {
+        redirect += `info=${result.info}`;
       }
       res.redirect(redirect);
     } else {
-      sendResponse(response.result, res);
+      sendResponse(result, res);
     }
   });
   router.post("/reset", async (req, res) => {

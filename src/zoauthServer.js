@@ -468,7 +468,7 @@ export class ZOAuthServer {
               86400,
             );
           }
-          this.middleware.sendUserCreated(
+          await this.middleware.sendUserCreated(
             email,
             username,
             validationPolicy,
@@ -723,6 +723,7 @@ export class ZOAuthServer {
         if (response.result.error) {
           throw new Error(response.result.error);
         }
+        await this.middleware.sendAccountEnable(user.email, user.username);
       } else {
         // Delete authentacation row
         const authentacation = await this.model.getAuthentication(
@@ -790,7 +791,13 @@ export class ZOAuthServer {
       if (response.result.error) {
         throw new Error(response.result.error);
       }
-      return { result: { redirectUri: app.redirect_uri } };
+      return {
+        result: {
+          redirectUri: app.redirect_uri,
+          info:
+            "Validation account successful. Please sign in to enjoy your chatbot builder.",
+        },
+      };
     } catch (error) {
       const result = { error: error.message };
       if (app) {
