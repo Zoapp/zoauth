@@ -362,10 +362,22 @@ export class ZOAuthModel {
     authentication,
     authentications = this.getAuthentications(),
   ) {
-    return authentications.deleteItem(authentication);
+    return authentications.deleteItem(authentication.id);
   }
 
-  async getAccessToken(
+  async getSession(clientId, userId, sessions = this.getSessions()) {
+    let session;
+    await sessions.nextItem((s) => {
+      if (s.client_id === clientId && s.user_id === userId) {
+        session = s;
+        return true;
+      }
+      return false;
+    });
+    return session;
+  }
+
+  async createAccessToken(
     clientId,
     userId,
     scope,
@@ -421,6 +433,10 @@ export class ZOAuthModel {
       }
     }
     return access;
+  }
+
+  async deleteSession(session, sessions = this.getSessions()) {
+    return sessions.deleteItem(session.id);
   }
 
   /* eslint-disable no-unused-vars */
