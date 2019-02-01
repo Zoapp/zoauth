@@ -76,16 +76,29 @@ export default (authServer = null, app = null, config = {}) => {
     handleAuthFunc(req, res, (params) => a.authServer.registerScope(params));
   });
   router.post("/validate", async (req, res) => {
-    handleAuthFunc(req, res, (params) => a.authServer.validateUser(params));
+    handleAuthFunc(req, res, (params) =>
+      a.authServer.validateUserFromAdmin(params, req.query.access_token),
+    );
+  });
+  router.get("/validate", async (req, res) => {
+    const { result } = await a.authServer.validateUserFromMail(req.query);
+    if (result.redirectUri) {
+      let redirect = `${result.redirectUri}?`;
+
+      if (result.error) {
+        redirect += `error=${result.error}`;
+      } else {
+        redirect += `info=${result.info}`;
+      }
+      res.redirect(redirect);
+    } else {
+      sendResponse(result, res);
+    }
   });
   router.post("/reset", async (req, res) => {
     handleAuthFunc(req, res, (params) => a.authServer.resetPassword(params));
   });
-  /* eslint-disable no-unused-vars */
-  /* router.use((err, req, res, next) => {
-    res.status(500).json({ error: "internal server error" });
-  }); */
-  router.use(async (req, res, next) => {
+  router.use(async (req, res) => {
     sendResponse({ error: "unknown request" }, res);
   });
   const defaultEndpoint = "auth";

@@ -358,6 +358,13 @@ export class ZOAuthModel {
     return authentications.getItem(query);
   }
 
+  async deleteAuthentication(
+    authentication,
+    authentications = this.getAuthentications(),
+  ) {
+    return authentications.deleteItem(authentication);
+  }
+
   async getAccessToken(
     clientId,
     userId,
@@ -404,6 +411,14 @@ export class ZOAuthModel {
         }
         return false;
       });
+
+      if (access) {
+        const expDate = access.created + access.expires_in * 1000;
+        if (expDate < new Date().getTime()) {
+          await sessions.deleteItem(access.id);
+          access = null;
+        }
+      }
     }
     return access;
   }

@@ -131,12 +131,12 @@ describeParams(
         params = { client_id: clientId, accept: true };
         response = await authServer.registerUser(params);
         ({ result } = response);
-        expect(result.error).toEqual("Wrong parameters sent");
+        expect(result.error).toEqual("Wrong parameters sent.");
 
         params = { client_id: clientId, email: "tutu@test.com", accept: true };
         response = await authServer.registerUser(params);
         ({ result } = response);
-        expect(result.error).toEqual("Wrong parameters sent");
+        expect(result.error).toEqual("Wrong parameters sent.");
 
         params = {
           client_id: clientId,
@@ -146,7 +146,7 @@ describeParams(
         };
         response = await authServer.registerUser(params);
         ({ result } = response);
-        expect(result.error).toEqual("Wrong parameters sent");
+        expect(result.error).toEqual("Wrong parameters sent.");
 
         params = {
           client_id: clientId,
@@ -158,7 +158,7 @@ describeParams(
         await authServer.registerUser(params);
         response = await authServer.registerUser(params);
         ({ result } = response);
-        expect(result.error).toEqual("Not valid user: toto");
+        expect(result.error).toEqual("Not valid user: toto.");
 
         params = {
           client_id: clientId,
@@ -169,7 +169,7 @@ describeParams(
         await authServer.registerUser(params);
         response = await authServer.registerUser(params);
         ({ result } = response);
-        expect(result.error).toEqual("Please accept policies's terms");
+        expect(result.error).toEqual("Please accept policies's terms.");
 
         params = {
           client_id: clientId,
@@ -181,7 +181,7 @@ describeParams(
         await authServer.registerUser(params);
         response = await authServer.registerUser(params);
         ({ result } = response);
-        expect(result.error).toEqual("Please accept policies's terms");
+        expect(result.error).toEqual("Please accept policies's terms.");
       });
     });
 
@@ -235,12 +235,12 @@ describeParams(
         params = { client_id: clientId };
         response = await authServer.registerUser(params);
         ({ result } = response);
-        expect(result.error).toEqual("Wrong parameters sent");
+        expect(result.error).toEqual("Wrong parameters sent.");
 
         params = { client_id: clientId, anonymous_secret: "kiki" };
         response = await authServer.registerUser(params);
         ({ result } = response);
-        expect(result.error).toEqual("Wrong parameters sent");
+        expect(result.error).toEqual("Wrong parameters sent.");
       });
     });
 
@@ -300,12 +300,12 @@ describeParams(
         params = { client_id: clientId };
         response = await authServer.anonymousAccess(params);
         ({ result } = response);
-        expect(result.error).toEqual("Wrong parameters sent");
+        expect(result.error).toEqual("Wrong parameters sent.");
 
         params = { client_id: clientId, anonymous_secret: "kiki" };
         response = await authServer.anonymousAccess(params);
         ({ result } = response);
-        expect(result.error).toEqual("Wrong parameters sent");
+        expect(result.error).toEqual("Wrong parameters sent.");
       });
     });
 
@@ -401,7 +401,7 @@ describeParams(
         };
         response = await authServer.authorizeAccess(params);
         ({ result } = response);
-        expect(result.error).toEqual("Not valid");
+        expect(result.error).toEqual("Not valid.");
 
         params = {
           client_id: clientId,
@@ -411,7 +411,7 @@ describeParams(
         };
         response = await authServer.authorizeAccess(params);
         ({ result } = response);
-        expect(result.error).toEqual("Wrong credentials");
+        expect(result.error).toEqual("Wrong credentials.");
       });
     });
 
@@ -531,7 +531,7 @@ describeParams(
         };
         response = await authServer.requestAccessToken(params);
         ({ result } = response);
-        expect(result.error).toEqual("Unknown grant type: undefined");
+        expect(result.error).toEqual("Unknown grant type: undefined.");
 
         params = {
           client_id: clientId,
@@ -541,7 +541,7 @@ describeParams(
         };
         response = await authServer.requestAccessToken(params);
         ({ result } = response);
-        expect(result.error).toEqual("Can't authenticate");
+        expect(result.error).toEqual("Can't authenticate.");
 
         params = {
           client_id: clientId,
@@ -552,7 +552,7 @@ describeParams(
         };
         response = await authServer.requestAccessToken(params);
         ({ result } = response);
-        expect(result.error).toEqual("Can't authenticate");
+        expect(result.error).toEqual("Can't authenticate.");
 
         params = {
           username: "toto",
@@ -562,7 +562,7 @@ describeParams(
         };
         response = await authServer.requestAccessToken(params);
         ({ result } = response);
-        expect(result.error).toEqual("Not authentified");
+        expect(result.error).toEqual("No client found.");
       });
     });
   },

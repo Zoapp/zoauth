@@ -7,6 +7,7 @@
 import { StringTools, Password } from "zoapp-core";
 import createModel from "./model";
 import Route from "./model/route";
+import ValidationError from "./errors/ValidationError";
 
 export class ZOAuthServer {
   /* static ErrorsMessages = {
@@ -325,6 +326,65 @@ export class ZOAuthServer {
   }
 
   /**
+   * Create pre anonymous user
+   */
+  createPreAnonymous(policies, anonymousSecret) {
+    if (
+      !policies.authorizeAnonymous ||
+      anonymousSecret !== policies.anonymous_secret
+    ) {
+      throw new Error("Wrong parameters sent.");
+    }
+
+    const token = this.model.generateAnonymousToken();
+    const anonymous = `anonymous-${token}`;
+    return {
+      username: anonymous,
+      valid_email: false,
+      password: policies.anonymous_secret,
+      anonymous: true,
+      anonymous_token: token,
+      anonymous_secret: anonymousSecret,
+      account_state: "enable",
+    };
+  }
+
+  /**
+   * Create pre user
+   */
+  async createPreUser(
+    accept,
+    username,
+    email,
+    password,
+    validationPolicy,
+    scope = null,
+  ) {
+    const policy = scope === "admin" ? "none" : validationPolicy;
+    const validation = policy === "none";
+    if (!accept) {
+      throw new Error("Please accept policies's terms.");
+    }
+
+    let user = await this.model.getUser(null, username, email);
+    if (user) {
+      // User already exist
+      throw new Error(`Not valid user: ${username}.`);
+    }
+
+    user = {
+      username,
+      password,
+      account_state: validation ? "enable" : "pending_validation",
+    };
+    if (email) {
+      user.email = email;
+      user.valid_email = validation;
+    }
+    return user;
+  }
+
+  /**
    * Register a ResourceOwner User
    */
   async registerUser(params, accessToken) {
@@ -335,94 +395,121 @@ export class ZOAuthServer {
       password,
       ...extras
     } = params;
-    let app = null;
-    if (clientId) {
-      app = await this.model.getApplication(clientId);
-    }
-    const response = {};
-
-    if (!app) {
-      return { error: "No client found" };
-    }
-
-    // get scope from authenticated user for unauthorized not admin user
-    if (accessToken) {
-      const access = await this.model.validateAccessToken(accessToken);
-      if (access.scope !== "admin") {
-        return { error: "Unauthorized" };
+    try {
+      const app = await this.model.getApplication(clientId);
+      if (!app) {
+        throw new Error("No client found.");
       }
-    }
 
-    let user = null;
-    const policies = app.policies || { userNeedEmail: true }; // TODO remove this default policies
-    const validationPolicy = policies.validation || "none";
-    const validation = !!(validationPolicy === "none");
+      // get scope from authenticated user for unauthorized not admin user
+      let scope;
+      if (accessToken) {
+        ({ scope } = await this.model.validateAccessToken(accessToken));
+        if (scope !== "admin") {
+          throw new Error("Unauthorized.");
+        }
+      }
 
-    if (
-      StringTools.stringIsEmpty(username) ||
-      (policies.userNeedEmail && StringTools.stringIsEmpty(email)) ||
-      StringTools.stringIsEmpty(password)
-    ) {
+      let user = null;
+      const policies = app.policies || { userNeedEmail: true }; // TODO remove this default policies
+      const validationPolicy =
+        scope === "admin" || !policies.validation
+          ? "none"
+          : policies.validation;
+
       if (
-        policies.authorizeAnonymous &&
-        extras.anonymous_secret === policies.anonymous_secret
+        StringTools.stringIsEmpty(username) ||
+        (policies.userNeedEmail && StringTools.stringIsEmpty(email)) ||
+        StringTools.stringIsEmpty(password)
       ) {
-        const token = this.model.generateAnonymousToken();
-        const anonymous = `anonymous-${token}`;
-        user = {
-          username: anonymous,
-          valid_email: false,
-          password: policies.anonymous_secret,
-          anonymous: true,
-          anonymous_token: token,
-          anonymous_secret: extras.anonymous_secret,
-        };
-      } else {
-        response.result = { error: "Wrong parameters sent" };
-      }
-    } else if (
-      ZOAuthServer.validateCredentialsValue(username, email, password, policies)
-    ) {
-      if (!extras.accept) {
-        response.result = { error: "Please accept policies's terms" };
-        return response;
-      }
-      user = await this.model.getUser(null, username, email);
-      if (!user) {
-        user = {
+        // Anonymous
+        user = this.createPreAnonymous(policies, extras.anonymous_secret);
+      } else if (
+        ZOAuthServer.validateCredentialsValue(
           username,
+          email,
           password,
-        };
-        if (email) {
-          user.email = email;
-          user.valid_email = validation;
-          if (this.middleware && this.middleware.sendUserCreated) {
-            this.middleware.sendUserCreated(email, username, validationPolicy);
-          }
-        }
+          policies,
+        )
+      ) {
+        // User
+        user = await this.createPreUser(
+          extras.accept,
+          username,
+          email,
+          password,
+          validationPolicy,
+          scope,
+        );
       } else {
-        user = null;
-        response.result = { error: `Not valid user: ${username}` };
+        throw new Error("Wrong parameters sent.");
       }
-    } else {
-      response.result = { error: "Wrong parameters sent" };
-    }
-    if (user) {
+
       user = await this.model.setUser(user);
-      if (user) {
-        response.result = {
-          id: user.id,
-          username: user.username,
-          validation: validationPolicy,
-        };
-        if (user.email) {
-          response.result.email = user.email;
-        }
-      } else {
-        response.result = { error: "Can't save user" };
+      if (!user) {
+        // Fail on user store
+        throw new Error("Can't save user.");
       }
+      const result = {
+        id: user.id,
+        username: user.username,
+        validation: validationPolicy,
+      };
+      if (user.email) {
+        result.email = user.email;
+        if (this.middleware && this.middleware.sendUserCreated) {
+          let activationMailToken;
+          if (validationPolicy === "mail") {
+            // Generate token to create mail activation link
+            activationMailToken = await this.model.getAccessToken(
+              clientId,
+              user.id,
+              "owner",
+              86400,
+            );
+          }
+          await this.middleware.sendUserCreated(
+            email,
+            username,
+            validationPolicy,
+            activationMailToken,
+          );
+        }
+      }
+
+      return { result };
+    } catch (error) {
+      return { result: { error: error.message } };
     }
-    return response;
+  }
+
+  /**
+   * Validate if account is enable
+   */
+  static isAccountEnable(user, app, prefix = "Can't authenticate.") {
+    let error;
+    if (user.account_state === "pending_validation") {
+      const policies = app.policies || {};
+      const validationPolicy = policies.validation || "none";
+      switch (validationPolicy) {
+        case "none":
+          break;
+        case "admin":
+          error = `${prefix} Please call your administrator to activate your account.`;
+          break;
+        case "mail":
+          error = `${prefix} Please see your mail to activate your account.`;
+          break;
+        default:
+          error = `${prefix} Unknow validation policy.`;
+          break;
+      }
+    } else if (user.account_state === "disable") {
+      error = `${prefix} Your account is disable. Please call your administrator to investigate.`;
+    }
+    if (error) {
+      throw new ValidationError(error);
+    }
   }
 
   /**
@@ -438,44 +525,53 @@ export class ZOAuthServer {
       redirect_uri: redirectUri,
       /* ...extras */
     } = params;
-    const response = {};
-    const authentication = {};
-    let app = null;
-    let user = null;
-    let storedAuth = null;
-    // logger.info("params", params);
-    if (clientId) {
-      app = await this.model.getApplication(clientId);
-    }
-    // logger.info("authorizeAccess", userId, username, password);
-    if (!StringTools.stringIsEmpty(userId)) {
-      user = await this.model.getUser(userId);
-    } else {
-      // authenticate user
-      user = await this.model.validateCredentials(username, password);
-    }
-    if (user && app) {
+    try {
+      const app = await this.model.getApplication(clientId);
+      if (!app) {
+        throw new Error("No client found.");
+      }
+
+      let user = null;
+      if (!StringTools.stringIsEmpty(userId)) {
+        user = await this.model.getUser(userId);
+      } else {
+        // authenticate user
+        user = await this.model.validateCredentials(username, password);
+      }
+
+      if (!user) {
+        if (userId) {
+          throw new Error("No valid user_id.");
+        }
+
+        if (username && password) {
+          throw new Error("Wrong credentials.");
+        }
+
+        throw new Error("Not valid.");
+      }
+
+      ZOAuthServer.isAccountEnable(user, app, "Can't authorize.");
+
+      // Account enable
+      const authentication = {};
       authentication.user_id = user.id;
       authentication.client_id = clientId;
       authentication.scope = scope;
       authentication.redirect_uri = this.model.validateRedirectUri(redirectUri);
       // TODO save extra params
+      let storedAuth = null;
       storedAuth = await this.model.setAuthentication(authentication);
-      if (storedAuth) {
-        response.result = { redirect_uri: authentication.redirect_uri };
-      } else {
-        response.result = { error: "Can't authenticate" };
+      if (!storedAuth) {
+        throw new Error("Can't authorize.");
       }
-    } else if (!app) {
-      response.result = { error: "No valid client_id" };
-    } else if (user == null && userId) {
-      response.result = { error: "No valid user_id" };
-    } else if (user == null && username && password) {
-      response.result = { error: "Wrong credentials" };
-    } else {
-      response.result = { error: "Not valid" };
+      return { result: { redirect_uri: authentication.redirect_uri } };
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return { result: { error: error.toJson() } };
+      }
+      return { result: { error: error.message } };
     }
-    return response;
   }
 
   /**
@@ -490,28 +586,36 @@ export class ZOAuthServer {
       client_id: clientId,
       /* ...extras */
     } = params;
-    const response = {};
-    let authentication = null;
-    let user = null;
-    // Only grantType = password for now
-    if (grantType === "password") {
-      // validate user
-      user = await this.model.validateCredentials(username, password);
-      if (user) {
-        // validate authentication
-        authentication = await this.model.getAuthentication(clientId, user.id);
-        if (!authentication) {
-          response.result = { error: "Not authentified", status: 400 };
-        }
-        // TODO extras, redirectUri
-      } else {
-        response.result = { error: "Can't authenticate", status: 400 };
+    try {
+      const app = await this.model.getApplication(clientId);
+      if (!app) {
+        throw new Error("No client found.");
       }
-    } else {
-      response.result = { error: `Unknown grant type: ${grantType}` };
-    }
 
-    if (user && authentication) {
+      // Only grantType = password for now
+      if (grantType !== "password") {
+        throw new Error(`Unknown grant type: ${grantType}.`);
+      }
+
+      // validate user
+      const user = await this.model.validateCredentials(username, password);
+      if (!user) {
+        throw new Error("Can't authenticate.");
+      }
+
+      // Validate account state
+      ZOAuthServer.isAccountEnable(user, app);
+
+      // validate authentication
+      const authentication = await this.model.getAuthentication(
+        clientId,
+        user.id,
+      );
+      if (!authentication) {
+        throw new Error("Not authentified.");
+      }
+
+      // TODO extras, redirectUri
       // generate accessToken
       const { scope } = authentication;
       const accessToken = await this.model.getAccessToken(
@@ -519,13 +623,19 @@ export class ZOAuthServer {
         user.id,
         scope,
       );
-      response.result = {
-        access_token: accessToken.access_token,
-        expires_in: accessToken.expires_in,
-        scope: accessToken.scope,
+      return {
+        result: {
+          access_token: accessToken.access_token,
+          expires_in: accessToken.expires_in,
+          scope: accessToken.scope,
+        },
       };
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return { result: { error: error.toJson() } };
+      }
+      return { result: { error: error.message } };
     }
-    return response;
   }
 
   /* eslint-disable no-unused-vars */
@@ -570,6 +680,131 @@ export class ZOAuthServer {
   async getApplicationByName(name) {
     const app = await this.model.getApplication(`name=${name}`);
     return app;
+  }
+
+  async validateUserFromAdmin(
+    { userId, newState, client_id: clientId, redirect_uri: redirectUri },
+    accessToken,
+  ) {
+    try {
+      const access = await this.model.validateAccessToken(accessToken);
+      if (access.scope !== "admin") {
+        throw new Error("Unauthorized.");
+      }
+
+      let user = await this.model.getUser(userId);
+      if (!user) {
+        throw new Error("No valid user found.");
+      }
+
+      if (newState !== "enable" && newState !== "disable") {
+        throw new Error(`Invalide state type ${newState}.`);
+      }
+
+      user = {
+        id: user.id,
+        account_state: newState,
+      };
+      user = await this.model.setUser(user);
+      if (!user) {
+        throw new Error("User store faillure.");
+      }
+
+      if (newState === "enable") {
+        // Create authentacation row
+        const response = await this.authorizeAccess({
+          username: user.username,
+          password: user.password,
+          client_id: clientId,
+          user_id: user.id,
+          scope: "owner",
+          redirect_uri: redirectUri,
+        });
+        if (response.result.error) {
+          throw new Error(response.result.error);
+        }
+        await this.middleware.sendAccountEnable(user.email, user.username);
+      } else {
+        // Delete authentacation row
+        const authentacation = await this.model.getAuthentication(
+          clientId,
+          user.id,
+        );
+        if (authentacation) {
+          await this.model.deleteAuthentication(authentacation.id);
+        }
+      }
+
+      return user;
+    } catch (error) {
+      return { result: { error: error.message } };
+    }
+  }
+
+  async validateUserFromMail({
+    username,
+    email,
+    client_id: clientId,
+    validation_token: validationToken,
+  }) {
+    let app;
+    try {
+      app = await this.model.getApplication(clientId);
+      if (!app) {
+        throw new Error("No client found.");
+      }
+
+      const access = await this.model.validateAccessToken(validationToken);
+      // Token is out of date
+      if (!access) {
+        throw new Error("Invalid token.");
+      }
+
+      // Get user from credentials
+      let user = await this.model.getUser(null, username, email);
+      if (!user) {
+        throw new Error("Invalid credentials.");
+      }
+
+      // Token is the right one for user credentials
+      if (access.user_id !== user.id) {
+        throw new Error("Invalid token");
+      }
+
+      user = {
+        id: user.id,
+        account_state: "enable",
+      };
+      user = await this.model.setUser(user);
+      if (!user) {
+        throw new Error("User store faillure.");
+      }
+
+      // Create authentacation row
+      const response = await this.authorizeAccess({
+        username: user.username,
+        password: user.password,
+        client_id: clientId,
+        user_id: user.id,
+        scope: "owner",
+      });
+      if (response.result.error) {
+        throw new Error(response.result.error);
+      }
+      return {
+        result: {
+          redirectUri: app.redirect_uri,
+          info:
+            "Validation account successful. Please sign in to enjoy your chatbot builder.",
+        },
+      };
+    } catch (error) {
+      const result = { error: error.message };
+      if (app) {
+        result.redirectUri = app.redirect_uri;
+      }
+      return { result };
+    }
   }
 }
 
