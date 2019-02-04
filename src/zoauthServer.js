@@ -461,7 +461,7 @@ export class ZOAuthServer {
           let activationMailToken;
           if (validationPolicy === "mail") {
             // Generate token to create mail activation link
-            activationMailToken = await this.model.getAccessToken(
+            activationMailToken = await this.model.createAccessToken(
               clientId,
               user.id,
               "owner",
@@ -618,7 +618,7 @@ export class ZOAuthServer {
       // TODO extras, redirectUri
       // generate accessToken
       const { scope } = authentication;
-      const accessToken = await this.model.getAccessToken(
+      const accessToken = await this.model.createAccessToken(
         clientId,
         user.id,
         scope,
@@ -731,7 +731,13 @@ export class ZOAuthServer {
           user.id,
         );
         if (authentacation) {
-          await this.model.deleteAuthentication(authentacation.id);
+          await this.model.deleteAuthentication(authentacation);
+        }
+
+        // Delete session
+        const userSession = await this.model.getSession(clientId, user.id);
+        if (userSession) {
+          await this.model.deleteSession(userSession);
         }
       }
 
