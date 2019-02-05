@@ -7,7 +7,7 @@
 import { StringTools, Password } from "zoapp-core";
 import createModel from "./model";
 import Route from "./model/route";
-import ValidationError from "./errors/ValidationError";
+import { ApiError, ValidationError } from "./errors";
 
 export class ZOAuthServer {
   /* static ErrorsMessages = {
@@ -333,7 +333,7 @@ export class ZOAuthServer {
       !policies.authorizeAnonymous ||
       anonymousSecret !== policies.anonymous_secret
     ) {
-      throw new Error("Wrong parameters sent.");
+      throw new ApiError(500, "Wrong parameters sent.");
     }
 
     const token = this.model.generateAnonymousToken();
@@ -363,13 +363,13 @@ export class ZOAuthServer {
     const policy = scope === "admin" ? "none" : validationPolicy;
     const validation = policy === "none";
     if (!accept) {
-      throw new Error("Please accept policies's terms.");
+      throw new ApiError(500, "Please accept policies's terms.");
     }
 
     let user = await this.model.getUser(null, username, email);
     if (user) {
       // User already exist
-      throw new Error(`Not valid user: ${username}.`);
+      throw new ApiError(500, `Not valid user: ${username}.`);
     }
 
     user = {
@@ -398,7 +398,7 @@ export class ZOAuthServer {
     try {
       const app = await this.model.getApplication(clientId);
       if (!app) {
-        throw new Error("No client found.");
+        throw new ApiError(403, "No client found.");
       }
 
       // get scope from authenticated user for unauthorized not admin user
@@ -406,7 +406,7 @@ export class ZOAuthServer {
       if (accessToken) {
         ({ scope } = await this.model.validateAccessToken(accessToken));
         if (scope !== "admin") {
-          throw new Error("Unauthorized.");
+          throw new ApiError(401, "Unauthorized.");
         }
       }
 
@@ -442,13 +442,13 @@ export class ZOAuthServer {
           scope,
         );
       } else {
-        throw new Error("Wrong parameters sent.");
+        throw new ApiError(500, "Wrong parameters sent.");
       }
 
       user = await this.model.setUser(user);
       if (!user) {
         // Fail on user store
-        throw new Error("Can't save user.");
+        throw new ApiError(500, "Can't save user.");
       }
       const result = {
         id: user.id,
@@ -479,7 +479,7 @@ export class ZOAuthServer {
 
       return { result };
     } catch (error) {
-      return { result: { error: error.message } };
+      return { result: { error: error.message, status: error.status } };
     }
   }
 
@@ -528,7 +528,7 @@ export class ZOAuthServer {
     try {
       const app = await this.model.getApplication(clientId);
       if (!app) {
-        throw new Error("No client found.");
+        throw new ApiError(403, "No client found.");
       }
 
       let user = null;
@@ -541,14 +541,14 @@ export class ZOAuthServer {
 
       if (!user) {
         if (userId) {
-          throw new Error("No valid user_id.");
+          throw new ApiError(500, "No valid user_id.");
         }
 
         if (username && password) {
-          throw new Error("Wrong credentials.");
+          throw new ApiError(500, "Wrong credentials.");
         }
 
-        throw new Error("Not valid.");
+        throw new ApiError(500, "Not valid.");
       }
 
       ZOAuthServer.isAccountEnable(user, app, "Can't authorize.");
@@ -563,14 +563,14 @@ export class ZOAuthServer {
       let storedAuth = null;
       storedAuth = await this.model.setAuthentication(authentication);
       if (!storedAuth) {
-        throw new Error("Can't authorize.");
+        throw new ApiError(401, "Can't authorize.");
       }
       return { result: { redirect_uri: authentication.redirect_uri } };
     } catch (error) {
       if (error instanceof ValidationError) {
         return { result: { error: error.toJson() } };
       }
-      return { result: { error: error.message } };
+      return { result: { error: error.message, status: error.status } };
     }
   }
 
@@ -589,18 +589,18 @@ export class ZOAuthServer {
     try {
       const app = await this.model.getApplication(clientId);
       if (!app) {
-        throw new Error("No client found.");
+        throw new ApiError(403, "No client found.");
       }
 
       // Only grantType = password for now
       if (grantType !== "password") {
-        throw new Error(`Unknown grant type: ${grantType}.`);
+        throw new ApiError(403, `Unknown grant type: ${grantType}.`);
       }
 
       // validate user
       const user = await this.model.validateCredentials(username, password);
       if (!user) {
-        throw new Error("Can't authenticate.");
+        throw new ApiError(401, "Can't authenticate.");
       }
 
       // Validate account state
@@ -612,7 +612,7 @@ export class ZOAuthServer {
         user.id,
       );
       if (!authentication) {
-        throw new Error("Not authentified.");
+        throw new ApiError(401, "Not authentified.");
       }
 
       // TODO extras, redirectUri
@@ -634,7 +634,7 @@ export class ZOAuthServer {
       if (error instanceof ValidationError) {
         return { result: { error: error.toJson() } };
       }
-      return { result: { error: error.message } };
+      return { result: { error: error.message, status: error.status } };
     }
   }
 
@@ -689,16 +689,16 @@ export class ZOAuthServer {
     try {
       const access = await this.model.validateAccessToken(accessToken);
       if (access.scope !== "admin") {
-        throw new Error("Unauthorized.");
+        throw new ApiError(401, "Unauthorized.");
       }
 
       let user = await this.model.getUser(userId);
       if (!user) {
-        throw new Error("No valid user found.");
+        throw new ApiError(500, "No valid user found.");
       }
 
       if (newState !== "enable" && newState !== "disable") {
-        throw new Error(`Invalide state type ${newState}.`);
+        throw new ApiError(500, `Invalide state type ${newState}.`);
       }
 
       user = {
@@ -707,7 +707,7 @@ export class ZOAuthServer {
       };
       user = await this.model.setUser(user);
       if (!user) {
-        throw new Error("User store faillure.");
+        throw new ApiError(500, "User store faillure.");
       }
 
       if (newState === "enable") {
@@ -743,7 +743,7 @@ export class ZOAuthServer {
 
       return user;
     } catch (error) {
-      return { result: { error: error.message } };
+      return { result: { error: error.message, status: error.status } };
     }
   }
 
@@ -757,24 +757,24 @@ export class ZOAuthServer {
     try {
       app = await this.model.getApplication(clientId);
       if (!app) {
-        throw new Error("No client found.");
+        throw new ApiError(403, "No client found.");
       }
 
       const access = await this.model.validateAccessToken(validationToken);
       // Token is out of date
       if (!access) {
-        throw new Error("Invalid token.");
+        throw new ApiError(401, "Invalid token.");
       }
 
       // Get user from credentials
       let user = await this.model.getUser(null, username, email);
       if (!user) {
-        throw new Error("Invalid credentials.");
+        throw new ApiError(500, "Invalid credentials.");
       }
 
       // Token is the right one for user credentials
       if (access.user_id !== user.id) {
-        throw new Error("Invalid token");
+        throw new ApiError(401, "Invalid token");
       }
 
       user = {
@@ -783,7 +783,7 @@ export class ZOAuthServer {
       };
       user = await this.model.setUser(user);
       if (!user) {
-        throw new Error("User store faillure.");
+        throw new ApiError(500, "User store faillure.");
       }
 
       // Create authentacation row
@@ -795,7 +795,7 @@ export class ZOAuthServer {
         scope: "owner",
       });
       if (response.result.error) {
-        throw new Error(response.result.error);
+        throw new ApiError(401, response.result.error);
       }
       return {
         result: {
@@ -805,7 +805,7 @@ export class ZOAuthServer {
         },
       };
     } catch (error) {
-      const result = { error: error.message };
+      const result = { error: error.message, status: error.status };
       if (app) {
         result.redirectUri = app.redirect_uri;
       }
