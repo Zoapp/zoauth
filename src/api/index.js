@@ -98,6 +98,11 @@ export default (authServer = null, app = null, config = {}) => {
   router.post("/reset", async (req, res) => {
     handleAuthFunc(req, res, (params) => a.authServer.resetPassword(params));
   });
+  router.post("/logout", async (req, res) => {
+    handleAuthFunc(req, res, (params) =>
+      a.authServer.logout(params, req.query.access_token),
+    );
+  });
   router.use(async (req, res) => {
     sendResponse({ error: "unknown request" }, res);
   });

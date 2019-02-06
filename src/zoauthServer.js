@@ -812,6 +812,29 @@ export class ZOAuthServer {
       return { result };
     }
   }
+
+  async logout({ client_id: clientId }, accessToken) {
+    try {
+      const access = await this.model.validateAccessToken(accessToken);
+      // Token is out of date
+      if (!access) {
+        return { result: { info: "Nothing to logout" } };
+      }
+
+      const user = await this.model.getUser(access.user_id);
+      if (!user) {
+        return { result: { info: "Nothing to logout" } };
+      }
+
+      const userSession = await this.model.getSession(clientId, user.id);
+      if (userSession) {
+        await this.model.deleteSession(userSession);
+      }
+      return { result: { info: "Successfully logout" } };
+    } catch (error) {
+      return { result: { error: error.message, status: error.status } };
+    }
+  }
 }
 
 export default (config, database) => new ZOAuthServer(config, database);
