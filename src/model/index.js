@@ -384,33 +384,43 @@ export class ZOAuthModel {
     expiration = this.tokenExpiration,
     sessions = this.getSessions(),
   ) {
-    let accessToken = null;
+    let access = null;
     if (clientId && userId) {
       const time = Date.now();
-      let id = `${clientId}-${userId}`;
-      accessToken = await sessions.getItem(id);
-      if (!accessToken) {
-        accessToken = {
+      const id = `${clientId}-${userId}`;
+      access = {
+        expires_in: expiration,
+        created: time,
+      };
+
+      // Get last token
+      const oldAccess = await sessions.getItem(id);
+      if (oldAccess) {
+        // Overide token
+        access = {
+          ...oldAccess,
+          ...access,
+        };
+
+        // Test if token is valid
+        const expDate = oldAccess.created + oldAccess.expires_in * 1000;
+        if (expDate < new Date().getTime()) {
+          access.access_token = this.generateAccessToken();
+        }
+      } else {
+        access = {
+          ...access,
           access_token: this.generateAccessToken(),
-          expires_in: expiration,
+          id,
           scope,
           client_id: clientId,
           user_id: userId,
-          id,
-          created: time,
         };
-        id = null;
-      } else {
-        accessToken.last = time;
-        // TODO handle token expiration
-        if (scope) {
-          accessToken.scope = scope;
-        }
       }
-      await sessions.setItem(id, accessToken);
+      await sessions.setItem(oldAccess ? id : null, access);
       // this.database.flush();
     }
-    return accessToken;
+    return access;
   }
 
   async validateAccessToken(accessToken, sessions = this.getSessions()) {
