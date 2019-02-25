@@ -95,8 +95,13 @@ export default (authServer = null, app = null, config = {}) => {
       sendResponse(result, res);
     }
   });
-  router.post("/reset", async (req, res) => {
+  router.post("/lost_password", async (req, res) => {
     handleAuthFunc(req, res, (params) => a.authServer.resetPassword(params));
+  });
+  router.put("/reset_password", async (req, res) => {
+    handleAuthFunc(req, res, (params) =>
+      a.authServer.changePassword(params, req.query.access_token),
+    );
   });
   router.post("/logout", async (req, res) => {
     handleAuthFunc(req, res, (params) =>
