@@ -4,7 +4,7 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-import { StringTools, Password } from "zoapp-core";
+import { StringTools } from "zoapp-core";
 import createModel from "./model";
 import Route from "./model/route";
 import { ApiError, ValidationError } from "./errors";
@@ -122,70 +122,75 @@ export class ZOAuthServer {
     return response;
   }
 
-  async changePassword(params) {
-    const { client_id: clientId, email, password } = params;
-    let response = null;
-    if (clientId) {
+  async changePassword(params, accessToken) {
+    const { client_id: clientId, password, email } = params;
+    try {
       const app = await this.model.getApplication(clientId);
-      const user = await this.model.getUser(null, null, email);
-      if (user && ZOAuthServer.validatePassword({ password })) {
-        const policies = (app && app.policies) || {};
-        if (
-          policies.resetPassword &&
-          this.middleware &&
-          this.middleware.sendChangedPassword
-        ) {
-          user.password = password;
-          // TODO backup previous password
-          await this.model.setUser(user);
-          if (this.middleware.sendChangedPassword(email)) {
-            response.result = { ok: "Password changed" };
-          }
-        }
+      if (!app) {
+        throw new ApiError(403, "No client found.");
       }
+
+      const access = await this.model.validateAccessToken(accessToken);
+      if (!access) {
+        throw new ApiError(401, "Unauthorized.");
+      }
+
+      const user = await this.model.getUser(null, null, email);
+      if (!user) {
+        throw new ApiError(500, "Invalid credentials.");
+      }
+
+      if (user.id !== access.user_id) {
+        throw new ApiError(401, "Invalid token");
+      }
+
+      user.password = password;
+      delete user.salt;
+      await this.model.setUser(user);
+
+      if (this.middleware && this.middleware.sendChangedPassword) {
+        await this.middleware.sendChangedPassword(email, user.username);
+      }
+
+      return { result: { info: "Password changed." } };
+    } catch (error) {
+      return { result: { error: error.message, status: error.status } };
     }
-    if (!response) {
-      response = { error: "Not valid action" };
-    }
-    return response;
   }
 
   async resetPassword(params) {
     const { client_id: clientId, email } = params;
-    let response = null;
-    if (clientId) {
+    try {
       const app = await this.model.getApplication(clientId);
-      const user = await this.model.getUser(null, null, email);
-      if (user) {
-        const policies = (app && app.policies) || {};
-        if (
-          policies.resetPassword &&
-          this.middleware &&
-          this.middleware.sendResetPassword
-        ) {
-          if (this.middleware.sendResetPassword(email)) {
-            response.result = { ok: "Email send" };
-          }
-        }
+      if (!app) {
+        throw new ApiError(403, "No client found.");
       }
-    }
-    if (!response) {
-      response = { error: "Not valid action" };
-    }
-    return response;
-  }
 
-  static validatePassword(params) {
-    const { password } = params;
-    const response = {};
-    const strength = Password.strength(password);
-    if (strength > 0) {
-      const hash = Password.generateSaltHash(password);
-      response.result = { hash, strength };
-    } else {
-      response.result = { error: "Empty password" };
+      const user = await this.model.getUser(null, null, email);
+      if (!user) {
+        throw new ApiError(500, "Invalid credentials");
+      }
+
+      if (this.middleware && this.middleware.sendResetPassword) {
+        const resetPasswordMailToken = await this.model.createAccessToken(
+          clientId,
+          user.id,
+          "owner",
+          14400,
+        );
+        await this.middleware.sendResetPassword(email, user.username, {
+          redirectUri: app.redirect_uri,
+          accessToken: resetPasswordMailToken.access_token,
+        });
+      }
+      return {
+        result: {
+          info: "Check your email to reset your password.",
+        },
+      };
+    } catch (error) {
+      return { result: { error: error.message, status: error.status } };
     }
-    return response;
   }
 
   async validateApplicationCredentials(credentials) {
